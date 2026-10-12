@@ -9,9 +9,11 @@ projects:
       - name: production
         databases:
           - name: proven-db
-            # Smallest paid Postgres: a free one is deleted 30 days after creation,
-            # which would be before judging (Dec 1-15).
-            plan: 0.1c-256mb
+            # FREE until about Nov 1, then UPGRADE to 0.1c-256mb ($10.50/month) in the Render
+            # dashboard - a free database expires 30 days after creation (about Nov 11) and is
+            # deleted 14 days later, before judging (Dec 1-15). Upgrading before expiry keeps the data.
+            # Keeps the shared $50 credit (Proven + Cosign) under budget.
+            plan: free
             postgresMajorVersion: "17"
             region: oregon
             # No outside connections: only the Proven web service, over Render's private network.

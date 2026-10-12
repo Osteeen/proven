@@ -6,7 +6,7 @@ What gets created (from `render.yaml`):
 
 | Resource | Plan | Notes |
 |---|---|---|
-| `proven-db` (Postgres 17) | `0.1c-256mb` (smallest paid) | A free database is deleted 30 days after creation - before judging. No outside connections (`ipAllowList: []`). |
+| `proven-db` (Postgres 17) | `free` until about Nov 1, then `0.1c-256mb` ($10.50/month) | **Upgrade before the free database expires (30 days after creation, about Nov 11)** - upgrading keeps the data; an expired one is deleted 14 days later, before judging. No outside connections (`ipAllowList: []`). |
 | `proven` (web service) | `free` | Sleeps after 15 minutes idle (about 1 minute to wake). Move to a paid plan for judging (about Nov 25) if credits allow. |
 
 Proven and Cosign share one $50 Render credit. **Check each plan's monthly price in the dashboard before you apply.**
