@@ -1,6 +1,7 @@
 // Seeds the demo charity (the sandbox charity onboarded in test 7) and the two
 // demo accounts used by the DEMO_LOGIN buttons. Safe to re-run.
 //   node --env-file=.env.local scripts/db/seed-demo.mjs
+// On Render it runs on every deploy (render.yaml) with DEMO_CHARITY_* set.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -9,8 +10,16 @@ import pg from "pg";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
 const here = dirname(fileURLToPath(import.meta.url));
-const test7 = JSON.parse(readFileSync(join(here, "..", "sandbox", ".state", "test7.json"), "utf8"));
-if (!test7.trackingId || !test7.sellerMerchantId) throw new Error("test 7 state missing tracking ID or merchant ID");
+// On Render there is no local test state: the demo charity's sandbox IDs come from the environment.
+const fromEnv = process.env.DEMO_CHARITY_TRACKING_ID && process.env.DEMO_CHARITY_MERCHANT_ID;
+if (!fromEnv && process.env.DEMO_LOGIN !== "true") {
+  console.log("Demo seed skipped (DEMO_LOGIN is not true).");
+  process.exit(0);
+}
+const test7 = fromEnv
+  ? { trackingId: process.env.DEMO_CHARITY_TRACKING_ID, sellerMerchantId: process.env.DEMO_CHARITY_MERCHANT_ID }
+  : JSON.parse(readFileSync(join(here, "..", "sandbox", ".state", "test7.json"), "utf8"));
+if (!test7.trackingId || !test7.sellerMerchantId) throw new Error("demo charity tracking ID or merchant ID missing");
 
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();

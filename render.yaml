@@ -1,0 +1,61 @@
+# Render Blueprint for Proven (PayPal sandbox only).
+# Create it from the Render dashboard: New > Blueprint > this repo.
+# Prices: read them in the dashboard before applying - Proven and Cosign share
+# one $50 hackathon credit. The web service stays on the free plan until judging.
+
+projects:
+  - name: proven
+    environments:
+      - name: production
+        databases:
+          - name: proven-db
+            # Smallest paid Postgres: a free one is deleted 30 days after creation,
+            # which would be before judging (Dec 1-15).
+            plan: 0.1c-256mb
+            postgresMajorVersion: "17"
+            region: oregon
+            # No outside connections: only the Proven web service, over Render's private network.
+            ipAllowList: []
+
+        services:
+          - type: web
+            name: proven
+            runtime: node
+            plan: free
+            region: oregon
+            # Migrations and the demo seed run on every deploy, before the new build goes live.
+            buildCommand: npm ci --include=dev && npm run db:migrate && npm run db:seed-demo && npm run build
+            startCommand: npm run start
+            healthCheckPath: /api/health
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: proven-db
+                  property: connectionString
+              - key: AUTH_SECRET
+                generateValue: true
+              # The service's https URL, e.g. https://proven.onrender.com - set after the first deploy.
+              - key: AUTH_URL
+                sync: false
+              - key: DEMO_LOGIN
+                value: "true"
+              - key: PAYPAL_ENV
+                value: sandbox
+              - key: PAYPAL_CLIENT_ID
+                sync: false
+              - key: PAYPAL_CLIENT_SECRET
+                sync: false
+              - key: PAYPAL_PARTNER_MERCHANT_ID
+                sync: false
+              - key: PAYPAL_PARTNER_ATTRIBUTION_ID
+                sync: false
+              # From the PayPal app's webhook settings, after the webhook is created.
+              - key: PAYPAL_WEBHOOK_ID
+                sync: false
+              # The demo charity onboarded in sandbox test 7 (sandbox IDs, not secrets).
+              - key: DEMO_CHARITY_TRACKING_ID
+                sync: false
+              - key: DEMO_CHARITY_MERCHANT_ID
+                sync: false

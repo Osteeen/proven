@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { handleVerifiedEvent, verifyWebhook } from "@/server/paypal/webhooks";
+import { allow } from "@/server/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,13 @@ const MAX_BYTES = 256 * 1024;
 export async function POST(req: NextRequest) {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) return NextResponse.json({ error: "webhooks not configured" }, { status: 503 });
+
+  // Each delivery costs a PayPal verify call, so floods are cut off before that.
+  // Render puts the caller's address first in x-forwarded-for.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!allow(`webhook:${ip}`, 60, 60_000) || !allow("webhook:all", 300, 60_000)) {
+    return NextResponse.json({ error: "slow down" }, { status: 429 });
+  }
 
   const raw = await req.text();
   if (raw.length > MAX_BYTES) return NextResponse.json({ error: "too large" }, { status: 413 });

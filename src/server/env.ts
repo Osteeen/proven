@@ -27,3 +27,27 @@ export function getEnv(): Env {
   cached = parsed.data;
   return cached;
 }
+
+// Everything the app needs to start. Checked once at server start (src/instrumentation.ts),
+// so a deploy with a missing or unsafe value fails loudly instead of half-working.
+const startupSchema = z
+  .object({
+    DATABASE_URL: z.string().min(1),
+    AUTH_SECRET: z.string().min(32),
+    AUTH_URL: z.string().url(),
+    DEMO_LOGIN: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).optional()),
+    PAYPAL_WEBHOOK_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  })
+  .refine((e) => process.env.NODE_ENV !== "production" || e.AUTH_URL.startsWith("https://"), {
+    message: "must be https in production",
+    path: ["AUTH_URL"],
+  });
+
+export function checkStartupEnv(): void {
+  getEnv();
+  const parsed = startupSchema.safeParse(process.env);
+  if (!parsed.success) {
+    const keys = [...new Set(parsed.error.issues.map((i) => `${i.path.join(".")} (${i.message})`))].join(", ");
+    throw new Error(`Invalid or missing environment variables: ${keys}`);
+  }
+}
