@@ -75,7 +75,8 @@ export function ReleaseForm({
             return (
               <label key={o.value} className="relative cursor-pointer rounded-[7px] px-3 py-2.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/25">
                 {on && <motion.span layoutId="release-kind" className="absolute inset-0 rounded-[7px] bg-card shadow-[0_1px_0_rgba(15,30,61,0.08),0_6px_16px_-10px_rgba(15,30,61,0.4)]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
-                <input type="radio" name="kind" value={o.value} checked={on} onChange={() => setKind(o.value)} className="sr-only" />
+                {/* Separate group name: after a failed submit React resets the form, and a booking payment must never be resent as a delivery release. */}
+                <input type="radio" name="kind-choice" value={o.value} checked={on} onChange={() => setKind(o.value)} className="sr-only" />
                 <span className="relative block text-sm text-ink">{o.label}</span>
                 <span className="relative block text-xs text-ink-muted">{o.hint}</span>
               </label>
@@ -83,7 +84,7 @@ export function ReleaseForm({
           })}
         </div>
       )}
-      {!(staged && advanceLeftCents > 0) && <input type="hidden" name="kind" value="final" />}
+      <input type="hidden" name="kind" value={staged && advanceLeftCents > 0 ? kind : "final"} />
 
       <div>
         <label htmlFor="amount" className="text-sm font-medium text-ink">

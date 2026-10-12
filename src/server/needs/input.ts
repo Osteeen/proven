@@ -29,7 +29,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Date-picker bounds (YYYY-MM-DD) that match the server rules below. */
 export function deadlineBounds(now: number = Date.now()): { min: string; max: string; today: string } {
   const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-  return { min: iso(now + 2 * DAY_MS), max: iso(now + (MAX_DEADLINE_DAYS - 1) * DAY_MS), today: iso(now) };
+  // Tomorrow is the earliest: a deadline runs to the end of its day (UTC), so tomorrow is always at least a day away.
+  return { min: iso(now + DAY_MS), max: iso(now + (MAX_DEADLINE_DAYS - 1) * DAY_MS), today: iso(now) };
 }
 
 export type NeedInput = {

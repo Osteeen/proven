@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseNeedInput } from "./input";
+import { deadlineBounds, parseNeedInput } from "./input";
 
 const now = new Date("2026-10-09T12:00:00Z");
 const opts = { now };
@@ -63,5 +63,18 @@ describe("parseNeedInput", () => {
   it("does not count duplicates toward the two-proof minimum", () => {
     const r = parseNeedInput({ ...good, requiredProof: ["receipt", "receipt"] }, opts);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("deadline of tomorrow", () => {
+  it("is the earliest date the calendar offers", () => {
+    expect(deadlineBounds(Date.parse("2026-10-12T20:55:00Z")).min).toBe("2026-10-13");
+  });
+  it("is accepted even one second before midnight UTC", () => {
+    const late = { now: new Date("2026-10-12T23:59:59Z") };
+    expect(parseNeedInput({ ...good, deadline: "2026-10-13" }, late).ok).toBe(true);
+  });
+  it("still refuses today", () => {
+    expect(parseNeedInput({ ...good, deadline: "2026-10-12" }, { now: new Date("2026-10-12T08:00:00Z") }).ok).toBe(false);
   });
 });

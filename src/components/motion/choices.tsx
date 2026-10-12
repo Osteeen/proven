@@ -82,7 +82,8 @@ export function ProofPicker({ name, options, defaultValues = [] }: { name: strin
                 on ? "border-ink bg-[#eef1f7]" : shake ? "border-[#e0a3a3] bg-card" : "border-line bg-card hover:border-ink-muted"
               }`}
             >
-              <input type="checkbox" name={name} value={o.value} checked={on} onChange={() => toggle(o.value)} className="sr-only" />
+              {/* No name: React resets a form after a submit, which would untick these while the picker still shows them ticked. The hidden inputs below carry the value. */}
+              <input type="checkbox" value={o.value} checked={on} onChange={() => toggle(o.value)} className="sr-only" />
               <span className="mt-0.5"><Tick on={on} /></span>
               <span>
                 <span className="block text-sm text-ink">{o.label}</span>
@@ -92,6 +93,9 @@ export function ProofPicker({ name, options, defaultValues = [] }: { name: strin
           );
         })}
       </div>
+      {picked.map((v) => (
+        <input key={v} type="hidden" name={name} value={v} />
+      ))}
       <div className="mt-3 flex items-center gap-3" aria-live="polite">
         <div className="flex gap-1" aria-hidden="true">
           {[picked.length >= 1, ready].map((lit, i) => (
@@ -126,12 +130,14 @@ export function SlidingChoice({ name, options, defaultValue, layoutId }: { name:
   const [value, setValue] = useState(defaultValue);
   return (
     <div role="radiogroup" className="mt-3 grid gap-1 rounded-[10px] border border-line bg-[#efece4] p-1 sm:grid-cols-2">
+      <input type="hidden" name={name} value={value} />
       {options.map((o) => {
         const on = value === o.value;
         return (
           <label key={o.value} className="relative cursor-pointer rounded-[7px] px-3 py-2.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/25">
             {on && <motion.span layoutId={layoutId} className="absolute inset-0 rounded-[7px] bg-card shadow-[0_1px_0_rgba(15,30,61,0.08),0_6px_16px_-10px_rgba(15,30,61,0.4)]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
-            <input type="radio" name={name} value={o.value} checked={on} onChange={() => setValue(o.value)} className="sr-only" />
+            {/* Grouped under a separate name so a form reset can't clear the real value (hidden input below). */}
+            <input type="radio" name={`${name}-choice`} value={o.value} checked={on} onChange={() => setValue(o.value)} className="sr-only" />
             <span className="relative block text-sm text-ink">{o.label}</span>
             <span className="relative block text-xs text-ink-muted">{o.hint}</span>
           </label>
