@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { MotionProvider } from "@/components/motion/provider";
+import { NavigationProgress } from "@/components/navigation-progress";
 import "./globals.css";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500"], variable: "--font-fraunces", display: "swap" });
@@ -16,7 +18,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body className="antialiased">
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
+          {children}
+        </MotionProvider>
       </body>
     </html>
   );

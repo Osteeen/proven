@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const outcome = await handleVerifiedEvent(event as Parameters<typeof handleVerifiedEvent>[0]);
+    // Type and outcome only - enough to confirm deliveries in Render's logs, nothing about donors.
+    console.info("PayPal webhook", { type: event.event_type, outcome });
     return NextResponse.json({ ok: true, outcome });
   } catch (e) {
     // Not marked done, so PayPal's retry processes it again.

@@ -17,6 +17,7 @@ type WebhookEvent = {
     status?: string;
     amount?: { value?: string };
     invoice_id?: string;
+    links?: { rel?: string; href?: string }[];
     supplementary_data?: { related_ids?: { authorization_id?: string } };
   };
 };
@@ -69,6 +70,13 @@ export async function handleVerifiedEvent(event: WebhookEvent): Promise<string> 
 
   let outcome = "ignored";
   const r = event.resource ?? {};
+  // The PayPal app is shared with another project, so PayPal sends this webhook
+  // every payment on the app. Only events touching Proven's own holds count;
+  // the rest are ignored quietly instead of raising review alerts.
+  if (!(await isOurs(event))) {
+    await db.update(webhookEvents).set({ outcome: "not Proven's - ignored" }).where(eq(webhookEvents.id, event.id));
+    return "not Proven's - ignored";
+  }
   if (event.event_type === "PAYMENT.CAPTURE.COMPLETED" && r.id) {
     const [known] = await db.select({ id: captures.id }).from(captures).where(eq(captures.paypalCaptureId, r.id)).limit(1);
     if (known) outcome = "already recorded";
@@ -140,4 +148,35 @@ export async function handleVerifiedEvent(event: WebhookEvent): Promise<string> 
   }
   await db.update(webhookEvents).set({ outcome }).where(eq(webhookEvents.id, event.id));
   return outcome;
+}
+
+/** Does this event concern one of Proven's own holds, captures or refunds? */
+async function isOurs(event: WebhookEvent): Promise<boolean> {
+  const db = getDb();
+  const r = event.resource ?? {};
+  const authId = r.supplementary_data?.related_ids?.authorization_id;
+  const byAuth = async (id: string | undefined) =>
+    !!id && (await db.select({ id: donations.id }).from(donations).where(eq(donations.paypalAuthorizationId, id)).limit(1)).length > 0;
+  const byCapture = async (id: string | undefined) =>
+    !!id && (await db.select({ id: captures.id }).from(captures).where(eq(captures.paypalCaptureId, id)).limit(1)).length > 0;
+
+  switch (event.event_type) {
+    case "PAYMENT.AUTHORIZATION.VOIDED":
+      return byAuth(r.id);
+    case "PAYMENT.CAPTURE.COMPLETED":
+    case "PAYMENT.CAPTURE.DENIED":
+    case "PAYMENT.CAPTURE.REVERSED":
+      return (await byCapture(r.id)) || (await byAuth(authId));
+    case "PAYMENT.CAPTURE.REFUNDED": {
+      // The resource is the refund; its "up" link points at the capture it came from.
+      const up = r.links?.find((l) => l.rel === "up")?.href ?? "";
+      const captureId = up.match(/\/captures\/([^/?]+)/)?.[1];
+      const refundRow = r.invoice_id && UUID.test(r.invoice_id)
+        ? (await db.select({ id: refunds.id }).from(refunds).where(eq(refunds.id, r.invoice_id)).limit(1)).length > 0
+        : false;
+      return refundRow || (await byCapture(captureId));
+    }
+    default:
+      return false;
+  }
 }
