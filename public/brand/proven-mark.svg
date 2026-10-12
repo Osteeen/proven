@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Proven">
+  <!-- Held: the dashed amber half. Proven: the solid green half. -->
+  <path d="M32 8 A24 24 0 0 0 32 56" fill="none" stroke="#b26b00" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 7.5"/>
+  <path d="M32 8 A24 24 0 0 1 32 56" fill="none" stroke="#1f7a4d" stroke-width="5" stroke-linecap="round"/>
+  <path d="M20.5 33 L28.5 41 L44 23.5" fill="none" stroke="#0f1e3d" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

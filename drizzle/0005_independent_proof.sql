@@ -1,0 +1,1 @@
+ALTER TABLE "needs" ADD CONSTRAINT "needs_independent_proof" CHECK ("needs"."required_proof" && ARRAY['supplier_confirmation', 'supplier_paypal_payment', 'recipient_confirmation']::proof_type[]);

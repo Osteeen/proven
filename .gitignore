@@ -1,0 +1,22 @@
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/settings.local.json
+
+# Dependencies and builds
+node_modules/
+.next/
+dist/
+build/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
+
+# Local sandbox test state (sandbox IDs only)
+scripts/sandbox/.state/
+
+# OS
+.DS_Store

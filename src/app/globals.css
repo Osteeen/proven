@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* Direction A - "Trusted ledger" (chosen by Osteen, Oct 2026).
+   Calm and precise: paper background, deep navy ink, receipt-style money.
+   Status colours mean the same thing everywhere in the app. */
+@theme {
+  --color-paper: #f7f5ef;
+  --color-card: #ffffff;
+  --color-ink: #0f1e3d;
+  --color-ink-soft: #33415e;
+  --color-ink-muted: #5b6680;
+  --color-line: #d9d5ca;
+
+  /* Held on the donor's PayPal, not charged */
+  --color-held: #b26b00;
+  --color-held-bg: #faeeda;
+  --color-held-text: #633806;
+  /* Proven - charged what was spent */
+  --color-proven: #1f7a4d;
+  --color-proven-bg: #e6f2ea;
+  --color-proven-text: #14532d;
+  /* Not proven - never charged */
+  --color-void: #6b7280;
+  --color-void-bg: #eef0f2;
+  --color-void-text: #374151;
+  /* In review - a person decides */
+  --color-review: #1d4ed8;
+  --color-review-bg: #e6eefb;
+  --color-review-text: #1e3a8a;
+
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Motion: smooth and quiet. Everything animated uses these. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-quick: 150ms;
+  --duration-base: 260ms;
+  --duration-slow: 480ms;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Entrances: content settles into place, cards one after another. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes grow-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.rise-in {
+  animation: rise-in var(--duration-slow) var(--ease-out-soft) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: page-in var(--duration-base) var(--ease-out-soft) both;
+}
+.grow-bar {
+  transform-origin: left;
+  animation: grow-bar 900ms var(--ease-out-soft) 200ms both;
+}
+
+/* Respect people who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

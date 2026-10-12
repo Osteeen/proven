@@ -1,0 +1,2 @@
+ALTER TABLE "charities" ADD COLUMN "review_releases_above_cents" integer DEFAULT 100000 NOT NULL;--> statement-breakpoint
+ALTER TABLE "charities" ADD CONSTRAINT "charities_review_threshold_positive" CHECK ("charities"."review_releases_above_cents" > 0);

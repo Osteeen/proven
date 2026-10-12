@@ -1,0 +1,60 @@
+import { formatUsd } from "@/server/money";
+import type { Mail } from "@/server/mail/mailer";
+
+type GiftFacts = {
+  to: string;
+  donationId: string;
+  link: string;
+  amountCents: number;
+  totalCents: number;
+  needTitle: string;
+  charityName: string;
+  deadline: Date;
+  holdExpiresAt?: Date;
+};
+
+const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+
+/** The first email: the hold is placed, nothing is charged, here is your link. */
+export function giftHeldEmail(f: GiftFacts): Mail {
+  return {
+    kind: "gift_held",
+    to: f.to,
+    donationId: f.donationId,
+    subject: `Your ${formatUsd(f.amountCents)} for ${f.needTitle} is held - you haven't been charged`,
+    text: [
+      `Thank you. PayPal is holding ${formatUsd(f.amountCents)} for "${f.needTitle}" from ${f.charityName}.`,
+      "",
+      "You haven't been charged. Here's what happens next:",
+      `- ${f.charityName} has until ${day(f.deadline)} to deliver and prove it.`,
+      "- If at least two independent checks agree, you're charged only what was actually spent.",
+      `- If it isn't proven in time, the hold is cancelled and you're never charged.${f.holdExpiresAt ? ` The hold lasts until ${day(f.holdExpiresAt)} at the latest.` : ""}`,
+      "",
+      "Follow your gift here - this link is private to you:",
+      f.link,
+      "",
+      "We'll email you when your gift is proven, or if it's released without charge.",
+      "",
+      "- Proven (PayPal sandbox demo - no real money moves)",
+    ].join("\n"),
+  };
+}
+
+/** A top-up: same gift page, new total. */
+export function giftAddedEmail(f: GiftFacts): Mail {
+  return {
+    kind: "gift_added",
+    to: f.to,
+    donationId: f.donationId,
+    subject: `You added ${formatUsd(f.amountCents)} - ${formatUsd(f.totalCents)} now held for ${f.needTitle}`,
+    text: [
+      `PayPal is now holding ${formatUsd(f.amountCents)} more for "${f.needTitle}" from ${f.charityName}.`,
+      `Your gift is ${formatUsd(f.totalCents)} in total. You still haven't been charged.`,
+      "",
+      "Same private link as before:",
+      f.link,
+      "",
+      "- Proven (PayPal sandbox demo - no real money moves)",
+    ].join("\n"),
+  };
+}
