@@ -274,7 +274,12 @@ export async function startSupplierPayment(
     return { approveUrl: order.approveUrl };
   } catch (e) {
     await db.update(supplierPayments).set({ status: "failed", failure: "PayPal didn't create the payment" }).where(eq(supplierPayments.id, payment.id));
-    console.error("Supplier payment order failed", { paymentId: payment.id, status: e instanceof PayPalError ? e.status : undefined, issues: e instanceof PayPalError ? e.issues : undefined });
+    console.error("Supplier payment order failed", {
+      paymentId: payment.id,
+      status: e instanceof PayPalError ? e.status : undefined,
+      issues: e instanceof PayPalError ? e.issues : undefined,
+      error: e instanceof PayPalError ? undefined : e instanceof Error ? `${e.name}: ${e.message}` : String(e),
+    });
     throw new SupplierError("PayPal couldn't start this payment. Nothing was paid - try again.");
   }
 }
@@ -316,7 +321,7 @@ const REJECTED_REASON = "A Proven reviewer couldn't confirm this supplier is a r
 /**
  * After the charity approves on PayPal: check the payment is really from this
  * charity's own PayPal account to this supplier for this amount, then take it.
- * A completed payment becomes a passed "Supplier paid with PayPal" proof.
+ * A completed payment becomes a passed "Paid the supplier with PayPal" proof.
  */
 export async function completeSupplierPayment(ctx: CharityContext, paymentId: string): Promise<Settled> {
   if (!UUID.test(paymentId)) return { status: "failed", message: "Payment not found.", needId: null };

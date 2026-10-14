@@ -45,7 +45,7 @@ export function advanceCapCents(needAmountCents: number, trustTier: "new" | "est
 export const SECOND_CHECKS = ["receipt", "supplier_confirmation", "recipient_confirmation", "live_photo"] as const;
 
 export type ReleaseProof = {
-  /** The need asks for "Supplier paid with PayPal" (every new need does). */
+  /** The need asks for "Paid the supplier with PayPal" (every new need does). */
   requiresSupplierPayment: boolean;
   /** Supplier payments through Proven whose proof currently passes (verified supplier, not refunded or disputed). */
   supplierPaidCents: number;
@@ -117,7 +117,7 @@ export function reviewReason(input: {
   thresholdCents: number;
   /** For a final release: the supplier payment and a second check both passed. */
   proofChecked?: boolean;
-  /** The need is bought through Proven (asks for "Supplier paid with PayPal"). */
+  /** The need is bought through Proven (asks for "Paid the supplier with PayPal"). */
   requiresSupplierPayment?: boolean;
 }): string | null {
   if (input.trustTier === "new" && input.completedReleases === 0) return "First release by a new charity";

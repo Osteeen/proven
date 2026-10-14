@@ -8,7 +8,7 @@ import { createNeedAction, type NeedFormState } from "./actions";
 
 // The PayPal supplier payment comes first and is always required; the rest are second checks.
 const PROOFS = [
-  { value: "supplier_paypal_payment", label: "Supplier paid with PayPal", hint: "Pay the supplier through Proven - PayPal's own record of the payment is the main proof" },
+  { value: "supplier_paypal_payment", label: "Paid the supplier with PayPal", hint: "You pay the supplier through Proven - PayPal's own record of that payment is the main proof" },
   { value: "receipt", label: "Receipt", hint: "Read by AI and matched to the need" },
   { value: "supplier_confirmation", label: "Supplier confirms", hint: "We ask the supplier at the email PayPal holds" },
   { value: "recipient_confirmation", label: "Recipient confirms", hint: "We text a random sample of the people helped" },

@@ -35,11 +35,17 @@ const RELEASE_STATUS: Record<string, { tone: "held" | "proven" | "void" | "revie
 };
 
 const PAID_NOTICE: Record<string, { tone: string; text: string }> = {
-  completed: { tone: "border-proven/30 bg-proven-bg text-proven-text", text: "Supplier paid with PayPal. PayPal's record of the payment is now proof on this need." },
+  completed: { tone: "border-proven/30 bg-proven-bg text-proven-text", text: "You paid the supplier with PayPal. PayPal's record of the payment is now proof on this need." },
   processing: { tone: "border-review/30 bg-review-bg text-review-text", text: "PayPal is still finishing the payment. Use Check PayPal below in a minute." },
   not_approved: { tone: "border-line bg-card text-ink-muted", text: "The payment wasn't approved on PayPal, so nothing was paid." },
   cancelled: { tone: "border-line bg-card text-ink-muted", text: "Payment cancelled on PayPal. Nothing was paid." },
   failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", text: "The payment didn't go through, so nothing was paid. The reason is below." },
+};
+
+const RELEASED_NOTICE: Record<string, { tone: string; text: string }> = {
+  completed: { tone: "border-proven/30 bg-proven-bg text-proven-text", text: "Released. PayPal has paid it to your account - the details are below." },
+  pending_review: { tone: "border-review/30 bg-review-bg text-review-text", text: "Sent for review. A reviewer checks it before PayPal pays it - nothing is charged until then." },
+  failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", text: "PayPal didn't finish this release. Nothing extra was charged - a reviewer can retry it." },
 };
 
 const PAYMENT_STATUS: Record<string, { tone: "held" | "proven" | "void" | "review" | "neutral"; label: string }> = {
@@ -64,10 +70,11 @@ const HOLD_STATUS: Record<string, string> = {
   expired: "Lapsed",
 };
 
-export default async function ManageNeedPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string }> }) {
+export default async function ManageNeedPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; released?: string }> }) {
   const ctx = await requireCharity();
   const { id } = await params;
-  const paid = (await searchParams).paid;
+  const { paid, released } = await searchParams;
+  const releasedNotice = typeof released === "string" ? RELEASED_NOTICE[released] : undefined;
   const paidNotice = typeof paid === "string" ? PAID_NOTICE[paid] : undefined;
   // Ownership is in the query: another charity's need is simply not found.
   const n = await getNeedForCharity(ctx, id);
@@ -132,6 +139,11 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
           </Link>
         </div>
 
+        {releasedNotice && (
+          <p role="status" className={`rise-in mt-6 rounded-[10px] border px-4 py-3 text-sm ${releasedNotice.tone}`}>
+            {releasedNotice.text}
+          </p>
+        )}
         {paidNotice && (
           <p role="status" className={`rise-in mt-6 rounded-[10px] border px-4 py-3 text-sm ${paidNotice.tone}`}>
             {paidNotice.text}
@@ -252,14 +264,16 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
               (recipients ? (
                 <p className="mt-3 rounded-[10px] border border-line bg-card px-4 py-3 text-sm text-ink-soft">
                   Recipient check sent: Proven texted {recipients.sample} of the {recipients.total.toLocaleString("en-US")} people you recorded, picked at random. {recipients.yes} said yes,{" "}
-                  {recipients.no} said no, {recipients.sample - recipients.yes - recipients.no} haven&apos;t answered yet.
+                  {recipients.no} said no, {recipients.sample - recipients.yes - recipients.no} yet to answer.
+                </p>
+              ) : !acceptsProof ? null : releaseProof.requiresSupplierPayment && !payments.some((p) => p.status === "completed") ? (
+                <p className="mt-3 rounded-[10px] border border-dashed border-line px-4 py-3 text-sm text-ink-muted">
+                  Recipient check: once you&apos;ve paid the supplier and handed out the goods, enter the phone numbers you recorded here. Proven texts a random few.
                 </p>
               ) : (
-                acceptsProof && (
-                  <div className="mt-3">
-                    <RecipientCheckForm needId={n.id} />
-                  </div>
-                )
+                <div className="mt-3">
+                  <RecipientCheckForm needId={n.id} />
+                </div>
               ))}
             {proofs.length > 0 && (
               <div className="mt-4">
@@ -278,7 +292,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
                 <Check done={releaseProof.supplierPaidCents > 0}>
                   {releaseProof.supplierPaidCents > 0 ? (
                     <>
-                      Supplier paid with PayPal - <Money cents={releaseProof.supplierPaidCents} />
+                      Paid the supplier with PayPal - <Money cents={releaseProof.supplierPaidCents} />
                     </>
                   ) : (
                     "Pay the supplier with PayPal (above)"

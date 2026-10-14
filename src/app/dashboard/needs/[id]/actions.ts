@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireCharity } from "@/server/auth/access";
 import { toCents } from "@/server/money";
 import { MAX_PROOF_BYTES, ProofError, submitReceipt } from "@/server/proofs/service";
@@ -25,6 +26,7 @@ export async function requestReleaseAction(needId: string, _prev: ReleaseFormSta
   const amount = str(formData.get("amount")).trim();
   const kind = str(formData.get("kind")) === "advance" ? "advance" : "final";
   let amountCents: number;
+  let done: "completed" | "pending_review" | "failed";
   try {
     amountCents = toCents(amount.replace(/[$,\s]/g, ""));
   } catch {
@@ -33,12 +35,14 @@ export async function requestReleaseAction(needId: string, _prev: ReleaseFormSta
   try {
     const r = await requestRelease(ctx, needId, { kind, amountCents, note: str(formData.get("note")) });
     refresh(needId);
-    return { done: r.status };
+    done = r.status;
   } catch (e) {
     if (e instanceof ReleaseError) return { error: e.message, amount, kind };
     console.error("Release request failed", e instanceof Error ? e.message : e);
     return { error: "Couldn't start the release. Nothing was charged - try again.", amount, kind };
   }
+  // A final release closes the need and its release form, so the outcome is shown as a page notice.
+  redirect(`/dashboard/needs/${needId}?released=${done}`);
 }
 
 /** The charity closes its own need: every hold is cancelled and donors are never charged for it. */

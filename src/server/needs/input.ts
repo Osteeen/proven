@@ -9,7 +9,7 @@ export const PROOF_LABELS: Record<ProofType, string> = {
   supplier_confirmation: "Supplier confirms",
   recipient_confirmation: "Recipient confirms",
   live_photo: "Live photo",
-  supplier_paypal_payment: "Supplier paid with PayPal",
+  supplier_paypal_payment: "Paid the supplier with PayPal",
 };
 
 /**

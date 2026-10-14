@@ -14,7 +14,7 @@ const KIND: Record<string, string> = {
   supplier_confirmation: "Supplier confirmation",
   recipient_confirmation: "Recipient confirmation",
   live_photo: "Live photo",
-  supplier_paypal_payment: "Supplier paid with PayPal",
+  supplier_paypal_payment: "Paid the supplier with PayPal",
 };
 
 /** Proof cards for a charity or a reviewer. Shows what the AI read and why it passed or not. */
@@ -33,7 +33,7 @@ export function ProofList({ proofs, showImages = true }: { proofs: ProofView[]; 
                   {p.merchant && <span className="text-ink-muted"> - {p.merchant}</span>}
                 </p>
                 <p className="font-mono text-xs text-ink-muted">
-                  {p.purchaseDate ? `Dated ${p.purchaseDate}` : `Uploaded ${formatDate(p.createdAt)}`}
+                  {p.purchaseDate ? `Dated ${p.purchaseDate}` : `${p.kind === "receipt" ? "Uploaded" : "Recorded"} ${formatDate(p.createdAt)}`}
                   {p.totalCents !== null && <> - total {formatUsd(p.totalCents)}</>}
                 </p>
               </div>

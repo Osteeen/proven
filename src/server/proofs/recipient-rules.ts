@@ -53,7 +53,7 @@ export function recipientStatus(input: { sample: number; total: number; yes: num
   reasons: string[];
 } {
   const waiting = input.sample - input.yes - input.no;
-  const tally = `Asked ${input.sample} ${input.sample === 1 ? "recipient" : "recipients"} picked at random by Proven: ${input.yes} said yes, ${input.no} said no, ${waiting} not answered yet.`;
+  const tally = `Asked ${input.sample} ${input.sample === 1 ? "recipient" : "recipients"} picked at random by Proven: ${input.yes} said yes, ${input.no} said no, ${waiting} yet to answer.`;
   const reasons = [tally];
   if (input.no > 0) {
     reasons.push(`${input.no === 1 ? "A recipient" : `${input.no} recipients`} said they didn't receive it - a person checks it.`);
