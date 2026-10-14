@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getDb } from "@/server/db/client";
 import { charities, memberships, users } from "@/server/db/schema";
+import { reviewerMayActOn } from "./scope";
+export { reviewerCharityScope, reviewerMayActOn } from "./scope";
 
 export type CharityContext = { userId: string; charityId: string; charityName: string; isDemo: boolean };
 export type ReviewerContext = { userId: string; isDemo: boolean };
@@ -45,19 +47,23 @@ export async function requireReviewer(): Promise<ReviewerContext> {
 }
 
 /**
- * Charities a reviewer may act on. A real reviewer: every charity (null = no
- * limit). A demo reviewer (anyone can sign in as one when DEMO_LOGIN is on):
- * only charities the seed marked is_demo - so a visitor can never approve,
- * refund or close a real charity's money.
+ * May the signed-in user see this charity's private files (receipts)? Its own
+ * members can; reviewers can within their scope. Everyone else (including
+ * donors and other charities) cannot. Returns false rather than redirecting,
+ * for API routes.
  */
-export async function reviewerCharityScope(reviewer: ReviewerContext): Promise<string[] | null> {
-  if (!reviewer.isDemo) return null;
-  const rows = await getDb().select({ id: charities.id }).from(charities).where(eq(charities.isDemo, true));
-  return rows.map((r) => r.id);
-}
-
-/** Refuses (as "not found") when this reviewer may not act on this charity. */
-export async function reviewerMayActOn(reviewer: ReviewerContext, charityId: string): Promise<boolean> {
-  const scope = await reviewerCharityScope(reviewer);
-  return scope === null || scope.includes(charityId);
+export async function maySeeCharityFiles(charityId: string): Promise<boolean> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return false;
+  const db = getDb();
+  const [member] = await db
+    .select({ id: memberships.userId })
+    .from(memberships)
+    .where(and(eq(memberships.userId, userId), eq(memberships.charityId, charityId)))
+    .limit(1);
+  if (member) return true;
+  const [u] = await db.select({ role: users.role, isDemo: users.isDemo }).from(users).where(eq(users.id, userId)).limit(1);
+  if (u?.role !== "reviewer") return false;
+  return reviewerMayActOn({ userId, isDemo: u.isDemo }, charityId);
 }

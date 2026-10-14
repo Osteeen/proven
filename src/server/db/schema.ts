@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   foreignKey,
   index,
   integer,
@@ -15,6 +16,8 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
 // Money is integer cents (USD only for the hackathon). Every row a charity can
 // touch carries charity_id, and child rows are tied to their parent AND its
@@ -361,6 +364,84 @@ export const webhookEvents = pgTable("webhook_events", {
 
 // Append-only audit trail of every money event. A trigger in the migrations
 // rejects UPDATE and DELETE on this table.
+/**
+ * Proof a charity submits for a need. AI reads it; our own rules (not the AI)
+ * decide the status. "needs_review" = a person must look. Proof never releases
+ * money by itself - it is evidence for a release.
+ */
+export const proofStatus = pgEnum("proof_status", ["checking", "passed", "needs_review", "failed"]);
+
+export const proofs = pgTable(
+  "proofs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    needId: uuid("need_id").notNull(),
+    charityId: uuid("charity_id").notNull(),
+    kind: proofType("kind").notNull(),
+    status: proofStatus("status").notNull().default("checking"),
+    // Plain-language reasons for the status, shown to the charity and reviewer.
+    reasons: text("reasons").array().notNull().default(sql`'{}'::text[]`),
+    // What the AI read (merchant, date, items, total, match, warning signs).
+    ai: jsonb("ai").$type<Record<string, unknown>>(),
+    aiModel: text("ai_model"),
+    // Verified spend from this proof, in cents (receipt total when it passed or was approved).
+    amountCents: integer("amount_cents"),
+    // Duplicate detection across ALL charities: exact image hash, and the receipt's own details.
+    imageSha256: text("image_sha256"),
+    fingerprint: text("fingerprint"),
+    duplicateOf: uuid("duplicate_of"),
+    submittedBy: text("submitted_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({ name: "proofs_need_charity_fk", columns: [t.needId, t.charityId], foreignColumns: [needs.id, needs.charityId] }).onDelete("restrict"),
+    unique("proofs_id_charity").on(t.id, t.charityId),
+    index("proofs_need_idx").on(t.needId),
+    index("proofs_image_idx").on(t.imageSha256),
+    index("proofs_fingerprint_idx").on(t.fingerprint),
+    check("proofs_amount_positive", sql`${t.amountCents} is null or ${t.amountCents} > 0`),
+  ],
+);
+
+/**
+ * Every way a receipt can be recognised again: receipt number + total, date +
+ * total, shop + date + total. A new receipt matching ANY key of another proof is
+ * flagged. Demo and real charities are kept in separate pools.
+ */
+export const proofFingerprints = pgTable(
+  "proof_fingerprints",
+  {
+    proofId: uuid("proof_id")
+      .notNull()
+      .references(() => proofs.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    isDemo: boolean("is_demo").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.proofId, t.key] }), index("proof_fingerprints_key_idx").on(t.key, t.isDemo)],
+);
+
+/** The uploaded file, kept apart so listing proofs never loads image bytes. */
+export const proofFiles = pgTable(
+  "proof_files",
+  {
+    proofId: uuid("proof_id").primaryKey(),
+    charityId: uuid("charity_id").notNull(),
+    mime: text("mime").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    bytes: bytea("bytes").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    foreignKey({ name: "proof_files_proof_charity_fk", columns: [t.proofId, t.charityId], foreignColumns: [proofs.id, proofs.charityId] }).onDelete("cascade"),
+    check("proof_files_size", sql`${t.sizeBytes} > 0 and ${t.sizeBytes} <= 6000000`),
+    check("proof_files_mime", sql`${t.mime} in ('image/jpeg', 'image/png', 'image/webp')`),
+  ],
+);
+
 export const refundStatus = pgEnum("refund_status", ["pending", "completed", "failed"]);
 
 /**

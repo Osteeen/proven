@@ -59,6 +59,9 @@ projects:
               # From the PayPal app's webhook settings, after the webhook is created.
               - key: PAYPAL_WEBHOOK_ID
                 sync: false
+              # Claude API key for the AI proof checks (set in the dashboard; never in this file).
+              - key: ANTHROPIC_API_KEY
+                sync: false
               # The demo charity onboarded in sandbox test 7 (sandbox IDs, not secrets).
               - key: DEMO_CHARITY_TRACKING_ID
                 sync: false

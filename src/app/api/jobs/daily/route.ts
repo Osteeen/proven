@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { markLapsedHolds } from "@/server/jobs/lapsed-holds";
+import { sweepStuckProofs } from "@/server/proofs/service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
   // Same answer whether or not jobs are configured: callers learn nothing without the secret.
   if (!authorized(req.headers.get("authorization"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const lapsed = await markLapsedHolds();
-  console.info("Daily jobs", { lapsed });
-  return NextResponse.json({ ok: true, lapsed });
+  const stuckProofs = await sweepStuckProofs();
+  console.info("Daily jobs", { lapsed, stuckProofs });
+  return NextResponse.json({ ok: true, lapsed, stuckProofs });
 }

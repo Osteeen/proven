@@ -8,8 +8,11 @@ import { CharityHeader, DemoBanner, Money, NeedStatus, StatusPill, formatDate } 
 import { requireCharity } from "@/server/auth/access";
 import { formatUsd } from "@/server/money";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
+import { ProofList } from "@/components/proof-list";
+import { listProofsForCharity } from "@/server/proofs/service";
 import { getNeedForCharity } from "@/server/releases/queries";
 import { cancelNeedAction } from "./actions";
+import { ReceiptUpload } from "./receipt-upload";
 import { ReleaseForm } from "./release-form";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +45,9 @@ export default async function ManageNeedPage({ params }: { params: Promise<{ id:
   const open = n.status === "open";
   const closable = ["open", "in_review", "funded", "delivering"].includes(n.status);
   const liveDonors = n.liveDonors;
+  const proofs = await listProofsForCharity(ctx, n.id);
+  const checkedSpend = proofs.filter((p) => p.status === "passed").reduce((s, p) => s + (p.amountCents ?? 0), 0);
+  const acceptsProof = ["open", "in_review"].includes(n.status);
 
   return (
     <>
@@ -118,6 +124,32 @@ export default async function ManageNeedPage({ params }: { params: Promise<{ id:
                 ? `A release of ${formatUsd(n.inFlight.amountCents)} didn't finish on PayPal. A reviewer will retry it - nothing is charged twice.`
                 : `A release of ${formatUsd(n.inFlight.amountCents)} is being sent to PayPal.`}
           </p>
+        )}
+
+        {(acceptsProof || proofs.length > 0) && (
+          <section className="rise-in mt-8" style={{ animationDelay: "210ms" }}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-serif text-lg text-ink">Proof of delivery</h2>
+              {checkedSpend > 0 && (
+                <p className="font-mono text-xs text-proven-text">
+                  Spend checked from receipts: <Money cents={checkedSpend} />
+                </p>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-ink-muted">
+              This need is released when {n.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" and ").toLowerCase()} check out.
+            </p>
+            {acceptsProof && n.requiredProof.includes("receipt") && (
+              <div className="mt-3">
+                <ReceiptUpload needId={n.id} />
+              </div>
+            )}
+            {proofs.length > 0 && (
+              <div className="mt-4">
+                <ProofList proofs={proofs} />
+              </div>
+            )}
+          </section>
         )}
 
         {n.releases.length > 0 && (

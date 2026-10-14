@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireCharity } from "@/server/auth/access";
 import { toCents } from "@/server/money";
+import { MAX_PROOF_BYTES, ProofError, submitReceipt } from "@/server/proofs/service";
 import { cancelNeed, ReleaseError, requestRelease } from "@/server/releases/service";
 
 export type ReleaseFormState = { error?: string; done?: "completed" | "pending_review" | "failed"; amount?: string; kind?: string };
@@ -50,5 +51,24 @@ export async function cancelNeedAction(needId: string): Promise<{ error?: string
     if (e instanceof ReleaseError) return { error: e.message };
     console.error("Cancel need failed", e instanceof Error ? e.message : e);
     return { error: "Couldn't close the need. Try again." };
+  }
+}
+
+export type ReceiptUploadState = { error?: string; result?: { status: string; reasons: string[] } };
+
+/** The charity uploads a receipt for its own need; the AI reads it and our rules decide. */
+export async function uploadReceiptAction(needId: string, _prev: ReceiptUploadState, formData: FormData): Promise<ReceiptUploadState> {
+  const ctx = await requireCharity();
+  const file = formData.get("receipt");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo of the receipt." };
+  if (file.size > MAX_PROOF_BYTES) return { error: "That image is too large - keep it under 5 MB." };
+  try {
+    const r = await submitReceipt(ctx, needId, { bytes: Buffer.from(await file.arrayBuffer()) });
+    refresh(needId);
+    return { result: { status: r.status, reasons: r.reasons } };
+  } catch (e) {
+    if (e instanceof ProofError) return { error: e.message };
+    console.error("Receipt upload failed", e?.constructor?.name); // never the message: it can carry query parameters
+    return { error: "Couldn't save the receipt. Try again." };
   }
 }

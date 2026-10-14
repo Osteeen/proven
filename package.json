@@ -17,6 +17,7 @@
     "db:seed-demo": "node scripts/db/seed-demo.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.129.0",
     "@auth/drizzle-adapter": "1.11.3",
     "drizzle-orm": "0.45.4",
     "motion": "14.1.0",

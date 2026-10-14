@@ -6,6 +6,8 @@ import { DemoBanner, Money, ReviewerHeader, StatusPill, formatDate } from "@/com
 import { requireReviewer } from "@/server/auth/access";
 import { formatUsd } from "@/server/money";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
+import { ProofList } from "@/components/proof-list";
+import { listProofsForNeed } from "@/server/proofs/service";
 import { listRefundableNeeds, listReviewQueue, listWebhookAlerts } from "@/server/releases/queries";
 import { approveAction, finishClosingAction, notProvenAction, rejectAction, retryAction } from "./actions";
 
@@ -18,6 +20,12 @@ const requestTime = () => new Date();
 export default async function ReviewPage() {
   const reviewer = await requireReviewer();
   const [queue, refundable, alerts] = await Promise.all([listReviewQueue(reviewer, requestTime()), listRefundableNeeds(reviewer), listWebhookAlerts(reviewer)]);
+  // Proof for each waiting release (the queue is already limited to charities this reviewer may see).
+  const proofsByNeed = new Map(
+    await Promise.all(
+      [...new Set(queue.releases.filter((r) => r.status === "pending_review").map((r) => r.needId))].map(async (id) => [id, await listProofsForNeed(reviewer, id)] as const),
+    ),
+  );
   const waiting = queue.releases.filter((r) => r.status === "pending_review");
   const failed = queue.releases.filter((r) => r.status !== "pending_review");
 
@@ -145,6 +153,17 @@ export default async function ReviewPage() {
                   <dd>{r.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" + ")}</dd>
                 </dl>
                 {r.note && <p className="mt-3 rounded-md bg-[#efece4] px-3 py-2 text-sm text-ink-soft">&ldquo;{r.note}&rdquo;</p>}
+
+                <div className="mt-4">
+                  <p className="text-xs text-ink-muted">Proof on this need</p>
+                  {(proofsByNeed.get(r.needId) ?? []).length === 0 ? (
+                    <p className="mt-1 text-sm text-ink-soft">No proof uploaded yet.</p>
+                  ) : (
+                    <div className="mt-2">
+                      <ProofList proofs={proofsByNeed.get(r.needId)!} />
+                    </div>
+                  )}
+                </div>
 
                 <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
                   {r.kind === "final" && (

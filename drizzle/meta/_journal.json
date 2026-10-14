@@ -99,6 +99,20 @@
       "when": 1791973874731,
       "tag": "0013_renewal_attempt",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791975853902,
+      "tag": "0014_proofs",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791976498789,
+      "tag": "0015_proof_fingerprints",
+      "breakpoints": true
     }
   ]
 }
