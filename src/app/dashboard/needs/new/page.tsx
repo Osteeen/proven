@@ -11,7 +11,7 @@ export default async function NewNeedPage() {
   return (
     <>
       <CharityHeader signOut={<SignOutButton />} />
-      {charity.isDemo && <DemoBanner />}
+      {charity.isDemo && <DemoBanner note="Needs you post in the demo are cleared after 2 days; any holds on them are cancelled." />}
       <main className="mx-auto w-full max-w-2xl px-4 pb-20 pt-8 sm:px-6">
         <div className="rise-in">
           <p className="text-sm text-ink-muted">{charity.charityName}</p>

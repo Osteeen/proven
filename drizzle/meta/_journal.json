@@ -155,6 +155,13 @@
       "when": 1791999710754,
       "tag": "0021_recipient_pools",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792005328675,
+      "tag": "0022_demo_seed",
+      "breakpoints": true
     }
   ]
 }

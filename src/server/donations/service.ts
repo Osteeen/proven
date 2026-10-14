@@ -31,7 +31,7 @@ function parseAmount(raw: string): number {
   } catch {
     throw new DonationError("Enter an amount like 25 or 25.50");
   }
-  if (c < MIN_DONATION_CENTS) throw new DonationError("The smallest gift is $1.00");
+  if (c < MIN_DONATION_CENTS) throw new DonationError("The smallest donation is $1.00");
   return c;
 }
 
@@ -85,7 +85,7 @@ export async function startDonation(needId: string, rawAmount: string, topUpKey?
   let key: string;
   let hash: string;
   if (topUpKey !== undefined) {
-    if (!isWellFormedDonorKey(topUpKey)) throw new DonationError("This gift link isn't valid.");
+    if (!isWellFormedDonorKey(topUpKey)) throw new DonationError("This donation link isn't valid.");
     key = topUpKey;
     hash = hashDonorKey(topUpKey);
   } else {
@@ -106,7 +106,7 @@ export async function startDonation(needId: string, rawAmount: string, topUpKey?
         .from(donations)
         .where(and(eq(donations.needId, need.id), eq(donations.donorAccessHash, hash), inArray(donations.status, [...HELD_STATUSES])))
         .limit(1);
-      if (!own) throw new DonationError("You can add to a gift once its first hold is in place.");
+      if (!own) throw new DonationError("You can add to a donation once its first hold is in place.");
     }
 
     const remaining = need.amountCents - (await sumAmounts(tx, need.id, heldOrReserved()));

@@ -24,12 +24,15 @@ export default async function SupplierConfirmPage({ params, searchParams }: { pa
           <Panel title="This link doesn't work" tone="neutral">
             It may have expired or been mistyped. If a charity paid you through Proven, the email has the right link.
           </Panel>
+        ) : c.status !== "requested" && r !== "confirmed" && r !== "denied" ? (
+          <Panel title="Already answered" tone="neutral">
+            {c.supplierName} already said {c.status === "confirmed" ? "the order was handed over" : "this order isn't right"}. Each link is answered once, so nothing changed.
+          </Panel>
         ) : c.status !== "requested" ? (
           <Panel title={c.status === "confirmed" ? "Thanks - delivery confirmed" : "Thanks - we'll look into it"} tone={c.status === "confirmed" ? "proven" : "neutral"}>
             {c.status === "confirmed"
               ? `You confirmed ${c.charityName} received ${c.description}. Donors can now be charged for it.`
               : `You told us the order from ${c.charityName} isn't right. A Proven reviewer checks it, and donors aren't charged on it in the meantime.`}
-            {r === "already" && " This link was already used, so nothing changed."}
           </Panel>
         ) : (
           <div className="rise-in rounded-[10px] border border-line bg-card p-6">

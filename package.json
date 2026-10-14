@@ -19,6 +19,11 @@
   "dependencies": {
     "@anthropic-ai/sdk": "0.129.0",
     "@auth/drizzle-adapter": "1.11.3",
+    "@bryntum/scheduler": "npm:@bryntum/scheduler-trial@7.3.7",
+    "@bryntum/scheduler-react": "7.3.7",
+    "ag-grid-community": "36.2.0",
+    "ag-grid-enterprise": "36.2.0",
+    "ag-grid-react": "36.2.0",
     "drizzle-orm": "0.45.4",
     "motion": "14.1.0",
     "next": "16.4.0",

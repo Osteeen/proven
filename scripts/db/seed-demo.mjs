@@ -69,7 +69,30 @@ try {
       ["Valley Supply Co. - Demo supplier (PayPal sandbox)", supplier.supplierEmail.toLowerCase(), supplier.trackingId, supplier.supplierMerchantId, charityId],
     );
   }
+
+  // Realistic needs for the demo charity, so the homepage always has needs to fund. Same
+  // templates and rules as the daily job (src/server/demo/needs.ts): post any template with
+  // no live copy, deadline inside the 28-day hold window.
+  await client.query("select pg_advisory_xact_lock(hashtext('proven-demo-needs'))");
+  const templates = JSON.parse(readFileSync(join(here, "..", "..", "src", "server", "demo", "demo-needs.json"), "utf8"));
+  let needsPosted = 0;
+  for (const t of templates) {
+    const live = await client.query(
+      `select 1 from needs where charity_id = $1 and demo_seed and title = $2
+         and status in ('open', 'funded', 'delivering', 'in_review') and deadline > now() + interval '1 day' limit 1`,
+      [charityId, t.title],
+    );
+    if (live.rowCount) continue;
+    await client.query(
+      `insert into needs (charity_id, title, description, amount_cents, deadline, funding_model, required_proof, status, demo_seed)
+       values ($1, $2, $3, $4, date_trunc('day', now() + make_interval(days => $5)) + interval '23 hours 59 minutes 59 seconds',
+               'reimbursement', $6::proof_type[], 'open', true)`,
+      [charityId, t.title, t.description, t.amountCents, t.days, t.requiredProof],
+    );
+    needsPosted++;
+  }
   await client.query("commit");
+  console.log(`seeded: ${needsPosted} demo needs posted`);
   console.log(`seeded: charity ${charityId} (merchant ${test7.sellerMerchantId}), demo charity admin, demo reviewer${supplier ? ", demo supplier" : ""}`);
 } catch (e) {
   await client.query("rollback");

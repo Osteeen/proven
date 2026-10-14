@@ -16,5 +16,6 @@ export async function recipientAnswerAction(token: string, formData: FormData): 
     revalidatePath("/dashboard", "layout");
     revalidatePath("/review");
   }
-  redirect(`/r/${encodeURIComponent(token)}`);
+  // "done=1" only for the answer just given; opening the link again shows "Already answered".
+  redirect(`/r/${encodeURIComponent(token)}${r === "done" ? "?done=1" : ""}`);
 }

@@ -111,6 +111,8 @@ export const needs = pgTable(
     fundingModel: fundingModel("funding_model").notNull().default("reimbursement"),
     requiredProof: proofType("required_proof").array().notNull(),
     status: needStatus("status").notNull().default("draft"),
+    // Seeded by Proven for the demo charity (kept fresh; never cleared as a visitor's test need).
+    demoSeed: boolean("demo_seed").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

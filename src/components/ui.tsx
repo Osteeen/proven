@@ -66,9 +66,16 @@ export function SiteHeader({ right }: { right?: React.ReactNode }) {
         <ProvenMark />
         Proven
       </Link>
-      <nav className="flex items-center gap-5 text-sm text-ink-soft">
+      <nav className="flex items-center gap-4 text-sm text-ink-soft sm:gap-5">
         <Link href="/needs" className={navLink}>Needs</Link>
-        <Link href="/#how" className={navLink}>How it works</Link>
+        <Link href="/#how" className={`${navLink} hidden sm:inline`}>How it works</Link>
+        {/* Demo mode: the way into every role, on every public page. */}
+        {process.env.DEMO_LOGIN === "true" && (
+          <Link href="/#demo" className="inline-flex items-center gap-1.5 font-medium text-held-text hover:text-ink">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-held" />
+            Try the demo
+          </Link>
+        )}
         {right ?? (
           <Link
             href="/signin"
@@ -138,10 +145,11 @@ export function PrimaryLink({ href, children }: { href: string; children: React.
   );
 }
 
-export function DemoBanner() {
+export function DemoBanner({ note }: { note?: string }) {
   return (
-    <p className="mx-auto mt-2 w-full max-w-5xl px-4 text-xs text-ink-muted sm:px-6">
+    <p className="mx-auto mt-2 flex w-full max-w-5xl flex-wrap items-center gap-x-3 gap-y-1 px-4 text-xs text-ink-muted sm:px-6">
       <span className="rounded-full border border-dashed border-line px-3 py-1">Demo account - PayPal sandbox, no real money</span>
+      {note && <span>{note}</span>}
     </p>
   );
 }

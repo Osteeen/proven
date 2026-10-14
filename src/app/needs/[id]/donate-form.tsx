@@ -13,7 +13,7 @@ export function DonateForm({
   remainingCents,
   remainingLabel,
   submitLabel = "Fund with PayPal",
-  label = "Your gift",
+  label = "Your donation",
 }: {
   action: (prev: DonateState, formData: FormData) => Promise<DonateState>;
   remainingCents: number;
@@ -26,7 +26,8 @@ export function DonateForm({
   const presets = PRESETS.filter((p) => p * 100 <= remainingCents).map(String);
   const rest = remainingCents < 10000 ? (remainingCents / 100).toFixed(remainingCents % 100 ? 2 : 0) : undefined;
   const options = rest && !presets.includes(rest) ? [...presets, rest] : presets;
-  const [amount, setAmount] = useState(state.amount ?? options.find((o) => o === "25") ?? options[0] ?? "");
+  // No amount is picked for the donor: they choose one, or type their own.
+  const [amount, setAmount] = useState(state.amount ?? "");
 
   return (
     <form action={action} className="mt-6 space-y-4">
@@ -60,10 +61,10 @@ export function DonateForm({
 
       <motion.button
         type="submit"
-        disabled={pending}
+        disabled={pending || !amount}
         whileHover={{ y: -1 }}
         whileTap={{ scale: 0.98 }}
-        className="relative w-full overflow-hidden rounded-full bg-[#ffc439] py-3 text-sm font-semibold text-[#111] transition-[filter] duration-(--duration-quick) hover:brightness-95 disabled:opacity-70"
+        className="relative w-full overflow-hidden rounded-full bg-[#ffc439] py-3 text-sm font-semibold text-[#111] transition-[filter] duration-(--duration-quick) hover:brightness-95 disabled:opacity-50"
       >
         {pending && (
           <motion.span
@@ -76,7 +77,7 @@ export function DonateForm({
         )}
         <span className="relative">{pending ? "Opening PayPal..." : submitLabel}</span>
       </motion.button>
-      <p className="text-center text-xs text-ink-muted">PayPal holds your gift. You&apos;re charged only if delivery is proven.</p>
+      <p className="text-center text-xs text-ink-muted">PayPal holds your donation. You&apos;re charged only if delivery is proven.</p>
     </form>
   );
 }

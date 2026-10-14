@@ -14,15 +14,15 @@ import { startTopUpAction } from "../../needs/[id]/actions";
 import { DonateForm } from "../../needs/[id]/donate-form";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Your gift - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your donation - Proven", robots: { index: false, follow: false } };
 
 type Stage = 0 | 1 | 2;
 const VIEW: Record<string, { headline: string; tone: "held" | "proven" | "void" | "review" | "neutral"; pill: string; stage: Stage; outcome: "proven" | "void" | "open" }> = {
   pending_approval: { headline: "Waiting for PayPal", tone: "neutral", pill: "Not held yet", stage: 0, outcome: "open" },
-  authorized: { headline: "Your gift is held - you haven't been charged", tone: "held", pill: "Held - not charged", stage: 0, outcome: "open" },
-  advance: { headline: "Part of your gift paid the booking - the rest waits for delivery", tone: "held", pill: "Partly charged", stage: 0, outcome: "open" },
+  authorized: { headline: "Your donation is held - you haven't been charged", tone: "held", pill: "Held - not charged", stage: 0, outcome: "open" },
+  advance: { headline: "Part of your donation paid the booking - the rest waits for delivery", tone: "held", pill: "Partly charged", stage: 0, outcome: "open" },
   in_review: { headline: "Delivery submitted - it's being checked", tone: "review", pill: "Being checked", stage: 1, outcome: "open" },
-  proven: { headline: "Delivery proven - your gift did its job", tone: "proven", pill: "Proven - charged", stage: 2, outcome: "proven" },
+  proven: { headline: "Delivery proven - your donation did its job", tone: "proven", pill: "Proven - charged", stage: 2, outcome: "proven" },
   closing: { headline: "Closed - your hold is being released", tone: "void", pill: "Releasing", stage: 1, outcome: "open" },
   voided: { headline: "Not proven - you were never charged", tone: "void", pill: "Never charged", stage: 2, outcome: "void" },
   closed_after_advance: { headline: "Closed - only the booking was charged", tone: "void", pill: "Closed", stage: 2, outcome: "void" },
@@ -83,7 +83,7 @@ export default async function DonorGiftPage({
 
         <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "200ms" }}>
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 font-mono text-sm [&>dd]:text-right [&>dt]:whitespace-nowrap [&>dt]:text-ink-muted">
-            <dt>Your gift</dt>
+            <dt>Your donation</dt>
             <dd><AnimatedMoney cents={g.giftCents} delay={0.3} /></dd>
             <dt>{v.outcome === "open" ? "Charged so far" : "Charged"}</dt>
             <dd><AnimatedMoney cents={g.chargedCents} delay={0.45} /></dd>
@@ -116,7 +116,7 @@ export default async function DonorGiftPage({
               {g.holds.map((h, i) => (
                 <li key={i} className="flex justify-between gap-4">
                   <span>
-                    {i === 0 ? "First gift" : "Added"} - {formatDate(h.at)}
+                    {i === 0 ? "First donation" : "Added"} - {formatDate(h.at)}
                   </span>
                   <span>
                     <Money cents={h.amountCents} /> <span className="text-ink-muted">{HOLD_LABEL[h.status] ?? h.status}</span>
@@ -129,8 +129,8 @@ export default async function DonorGiftPage({
 
         {g.canTopUp && (
           <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "280ms" }}>
-            <p className="font-serif text-lg text-ink">Add to your gift</p>
-            <p className="mt-1 text-sm text-ink-muted">It&apos;s held the same way and shows here as part of one gift.</p>
+            <p className="font-serif text-lg text-ink">Add to your donation</p>
+            <p className="mt-1 text-sm text-ink-muted">It&apos;s held the same way and shows here as part of one donation.</p>
             <DonateForm
               action={startTopUpAction.bind(null, key, g.needId)}
               remainingCents={g.remainingCents}
@@ -146,9 +146,9 @@ export default async function DonorGiftPage({
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-3 rounded-[10px] border border-dashed border-line px-4 py-3">
-          <CopyLinkButton path={`/d/${key}`} label="Copy your gift link" />
+          <CopyLinkButton path={`/d/${key}`} label="Copy your tracking link" />
           <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink-muted">
-            {g.emailedTo ? `We emailed this link to ${maskEmail(g.emailedTo)}. ` : ""}This page is your private link to this gift - save it to come back and see when it&apos;s proven. Anyone with the link can see its status, so share it only if you want to.
+            {g.emailedTo ? `We emailed this link to ${maskEmail(g.emailedTo)}. ` : ""}Save this link to come back and track your donation until it&apos;s proven. Anyone with the link can see its status, so share it only if you want to.
           </p>
         </div>
       </main>

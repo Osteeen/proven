@@ -1,0 +1,1 @@
+ALTER TABLE "needs" ADD COLUMN "demo_seed" boolean DEFAULT false NOT NULL;

@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Blankets for 60 families at the Riverbend school shelter",
+    "description": "Wool blankets for the 60 families sleeping on the school gym floor since the river flooded their homes. Nights are dropping below 10C. Bought from Valley Supply Co. and handed out at the shelter.",
+    "amountCents": 120000,
+    "days": 14,
+    "requiredProof": ["supplier_paypal_payment", "receipt", "supplier_confirmation"]
+  },
+  {
+    "title": "Three days of bottled water for the Eastside evacuation centre",
+    "description": "The water main to the Eastside evacuation centre is broken. 400 people need drinking water for three days until it is repaired. Delivered by the case and handed out at the door.",
+    "amountCents": 85000,
+    "days": 10,
+    "requiredProof": ["supplier_paypal_payment", "receipt", "recipient_confirmation"]
+  },
+  {
+    "title": "Hygiene kits for 120 people displaced by the flood",
+    "description": "Soap, toothbrushes, toothpaste, sanitary pads and towels for 120 people staying with relatives after losing their homes. Packed into kits and collected by each family.",
+    "amountCents": 180000,
+    "days": 20,
+    "requiredProof": ["supplier_paypal_payment", "supplier_confirmation", "recipient_confirmation"]
+  },
+  {
+    "title": "Two weeks of baby formula for 25 families",
+    "description": "Infant formula for 25 families with babies under one year old, staying at the Riverbend shelter. Shops nearby are closed, so it is bought in bulk and handed out each week.",
+    "amountCents": 64000,
+    "days": 12,
+    "requiredProof": ["supplier_paypal_payment", "receipt"]
+  }
+]

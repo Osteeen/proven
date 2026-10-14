@@ -50,7 +50,7 @@ export async function emailDonorsAfterSettlement(needId: string, outcome: "prove
             `${first.charityName} delivered "${first.needTitle}" and it checked out.`,
             "",
             `Charged: ${formatUsd(charged)} of your ${formatUsd(total)} - only what was actually spent.`,
-            never > 0 ? `Never charged: ${formatUsd(never)}. PayPal has released it.` : "Your whole gift was used.",
+            never > 0 ? `Never charged: ${formatUsd(never)}. PayPal has released it.` : "Your whole donation was used.",
           ]
         : [
             `"${first.needTitle}" from ${first.charityName} was closed without proof of delivery.`,
@@ -64,7 +64,7 @@ export async function emailDonorsAfterSettlement(needId: string, outcome: "prove
         to: first.email!,
         donationId: first.id,
         subject,
-        text: [...lines, "", "Your gift page (the private link in our first email) shows the details.", "", "- Proven (PayPal sandbox demo - no real money moves)"].join("\n"),
+        text: [...lines, "", "Track your donation with the link in our first email - it shows the details.", "", "- Proven (PayPal sandbox demo - no real money moves)"].join("\n"),
       });
     }
   } catch (e) {
@@ -117,7 +117,7 @@ export async function emailDonorsAboutRefund(refundIds: string[]): Promise<void>
           net > 0 ? `You were charged ${formatUsd(net)} in the end.` : "You were not charged anything in the end.",
           "PayPal sends the money back to the account or card you paid with.",
           "",
-          "Your gift page (the private link in our first email) shows the details.",
+          "Track your donation with the link in our first email - it shows the details.",
           "",
           "- Proven (PayPal sandbox demo - no real money moves)",
         ].join("\n"),

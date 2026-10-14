@@ -25,7 +25,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <CharityHeader signOut={<SignOutButton />} />
-      {charity.isDemo && <DemoBanner />}
+      {charity.isDemo && <DemoBanner note="Needs you post in the demo are cleared after 2 days; any holds on them are cancelled." />}
       <main className="mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:px-6">
         <div className="rise-in flex flex-wrap items-end justify-between gap-4">
           <div>

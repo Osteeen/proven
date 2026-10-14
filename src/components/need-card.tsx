@@ -38,7 +38,7 @@ export function NeedCard({ need, href, index = 0 }: { need: NeedCardData; href: 
         <dd className="text-right"><AnimatedMoney cents={need.heldCents} delay={0.1 + index * 0.06} /></dd>
         <dt className="text-ink-muted">Deliver by</dt>
         <dd className="text-right">{formatDate(need.deadline)}</dd>
-        <dt className="text-ink-muted">Proof</dt>
+        <dt className="text-ink-muted">Checks</dt>
         <dd className="text-right">{need.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" + ")}</dd>
       </dl>
       <ProgressBar pct={pct} delay={0.2 + index * 0.06} />

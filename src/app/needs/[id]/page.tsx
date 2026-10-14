@@ -81,7 +81,7 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
               <OtherNeeds excludeId={need.id} title="" />
             </div>
           ) : (
-            <p className="mt-5 text-sm text-ink-muted">This need isn&apos;t taking new gifts.</p>
+            <p className="mt-5 text-sm text-ink-muted">This need isn&apos;t taking new donations.</p>
           )}
         </aside>
       </main>

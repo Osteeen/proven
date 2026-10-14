@@ -96,7 +96,7 @@ export default async function ReviewNeedPage({ params }: { params: Promise<{ id:
         {n.gifts.length > 0 && (
           <section className="mt-8">
             <h2 className="font-serif text-lg text-ink">Donors</h2>
-            <p className="mt-1 text-xs text-ink-muted">Anonymous - one row per gift link.</p>
+            <p className="mt-1 text-xs text-ink-muted">Anonymous - one row per donor.</p>
             <ul className="mt-3 space-y-1.5 font-mono text-xs text-ink-soft">
               {n.gifts.map((g) => (
                 <li key={g.label} className="flex justify-between gap-4 border-b border-dashed border-line pb-1.5">

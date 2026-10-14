@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { markLapsedHolds } from "@/server/jobs/lapsed-holds";
 import { sweepStuckProofs } from "@/server/proofs/service";
 import { sweepRecipientChecks } from "@/server/proofs/recipients";
+import { closeStaleDemoNeeds, refreshDemoNeeds } from "@/server/demo/needs";
 import { sweepSupplierPayments } from "@/server/suppliers/service";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
   const stuckProofs = await sweepStuckProofs();
   const supplierPayments = await sweepSupplierPayments();
   const recipientChecks = await sweepRecipientChecks();
-  console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks });
-  return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks });
+  // Demo mode only: clear visitors' test needs, then top the seeded ones back up.
+  const demoNeeds = process.env.DEMO_LOGIN === "true" ? { closed: await closeStaleDemoNeeds(), posted: await refreshDemoNeeds() } : null;
+  console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds });
+  return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds });
 }

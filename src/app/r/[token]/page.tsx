@@ -10,9 +10,9 @@ export const metadata: Metadata = { title: "Did you receive help? - Proven", rob
  * The one-tap question texted to a randomly picked recipient. Kept short and
  * plain for a phone screen. Opening it never answers (link previews open links).
  */
-export default async function RecipientCheckPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ e?: string }> }) {
+export default async function RecipientCheckPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ e?: string; done?: string }> }) {
   const { token } = await params;
-  const { e } = await searchParams;
+  const { e, done } = await searchParams;
   const q = await getRecipientQuestion(token);
 
   return (
@@ -24,11 +24,18 @@ export default async function RecipientCheckPage({ params, searchParams }: { par
             <h1 className="font-serif text-3xl leading-tight text-ink">This link doesn&apos;t work</h1>
             <p className="mt-3 text-base text-ink-muted">It may have expired. Nothing else is needed from you.</p>
           </>
+        ) : q.answered && !done ? (
+          <>
+            <h1 className="font-serif text-3xl leading-tight text-ink">Already answered</h1>
+            <p className="mt-3 text-base text-ink-muted">
+              This person already said {q.answered === "yes" ? "yes, they received it" : "no, they didn't receive it"}. Each person answers once, so nothing changed.
+            </p>
+          </>
         ) : q.answered ? (
           <>
             <h1 className="font-serif text-3xl leading-tight text-ink">Thank you</h1>
             <p className="mt-3 text-base text-ink-muted">
-              {q.answered === "yes" ? "Your answer helps the donors know their gift reached you." : "We'll look into it. Donors aren't charged for help that didn't arrive."}
+              {q.answered === "yes" ? "Your answer helps the donors know their donation reached you." : "We'll look into it. Donors aren't charged for help that didn't arrive."}
             </p>
           </>
         ) : (

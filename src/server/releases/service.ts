@@ -6,7 +6,7 @@ import type { CharityContext, ReviewerContext } from "@/server/auth/access";
 import { reviewerMayActOn } from "@/server/auth/scope";
 import { getDb } from "@/server/db/client";
 import { captures, charities, donations, ledgerEntries, memberships, needs, proofs, releases, supplierPayments, suppliers } from "@/server/db/schema";
-import { cents, formatUsd } from "@/server/money";
+import { cents, formatUsd, toCents } from "@/server/money";
 import { PayPalError } from "@/server/paypal/client";
 import { captureAuthorization, getOrderCaptures, voidAuthorization } from "@/server/paypal/orders";
 import { emailDonorsAfterSettlement } from "./emails";
@@ -257,17 +257,42 @@ type PlannedCapture = {
   orderId: string | null;
 };
 
-type PayPalView = { state: "completed"; paypalCaptureId: string } | { state: "pending" | "absent" | "declined" };
+// "unclear" = PayPal shows a capture we can't book safely (a different amount, a reversal, a
+// status we don't know): never booked, never called failed, never captured again - a person looks.
+type PayPalView = { state: "completed"; paypalCaptureId: string } | { state: "pending" | "absent" | "declined" | "unclear" };
 
-/** What PayPal's own record says about one of our capture rows (matched on the invoice ID we sent). */
-async function onPayPal(orderId: string | null, captureRowId: string): Promise<PayPalView> {
+/**
+ * What PayPal's own record says about one of our capture rows (matched on the invoice ID
+ * we sent). If PayPal lists several, the one that moved money wins. A completed capture
+ * counts only when its amount is exactly our row's.
+ */
+async function onPayPal(orderId: string | null, captureRowId: string, amountCents: number): Promise<PayPalView> {
   if (!orderId) return { state: "absent" };
-  const found = (await getOrderCaptures(orderId)).find((c) => c.invoiceId === captureRowId);
+  const rank = (status: string) => (MONEY_TAKEN.includes(status) ? 0 : status === "PENDING" ? 1 : status === "DECLINED" || status === "FAILED" ? 3 : 2);
+  const found = (await getOrderCaptures(orderId)).filter((c) => c.invoiceId === captureRowId).sort((a, b) => rank(a.status) - rank(b.status))[0];
   if (!found) return { state: "absent" };
-  if (["COMPLETED", "REFUNDED", "PARTIALLY_REFUNDED"].includes(found.status)) return { state: "completed", paypalCaptureId: found.id };
+  if (MONEY_TAKEN.includes(found.status)) {
+    let paid: number | null = null;
+    try {
+      paid = found.amountValue ? toCents(found.amountValue) : null;
+    } catch {
+      paid = null;
+    }
+    if (paid !== amountCents) {
+      console.error("PayPal capture amount differs from our record - needs a person", { captureRowId, paypalCaptureId: found.id });
+      return { state: "unclear" };
+    }
+    return { state: "completed", paypalCaptureId: found.id };
+  }
   if (found.status === "PENDING") return { state: "pending" };
-  return { state: "declined" };
+  if (found.status === "DECLINED" || found.status === "FAILED") return { state: "declined" };
+  // REVERSED (a chargeback after money moved) or anything new: not ours to settle.
+  console.error("PayPal capture in a state we don't book - needs a person", { captureRowId, status: found.status });
+  return { state: "unclear" };
 }
+
+/** Capture statuses where PayPal did take the money (refunds are booked as their own events). */
+const MONEY_TAKEN = ["COMPLETED", "REFUNDED", "PARTIALLY_REFUNDED"];
 
 /** A reviewer retries a release that failed or stopped on PayPal. */
 export async function retryRelease(reviewer: ReviewerContext, releaseId: string): Promise<"completed" | "failed"> {
@@ -413,9 +438,10 @@ async function captureOnce(c: PlannedCapture & { charityId: string; releaseId: s
 
   try {
     if (checkFirst) {
-      const view = await onPayPal(c.orderId, c.id);
-      // Already captured, or still processing on PayPal: never capture again.
+      const view = await onPayPal(c.orderId, c.id, c.amountCents);
+      // Already captured, still processing, or something a person must look at: never capture again.
       if (view.state === "completed" || view.state === "pending") return settle(view);
+      if (view.state === "unclear") return false;
     }
     // After the honor period an uncharged hold is renewed first; captures use the current ID.
     const authId = await authorizationForCapture(c.donationId);
@@ -431,12 +457,22 @@ async function captureOnce(c: PlannedCapture & { charityId: string; releaseId: s
     const duplicate = e instanceof PayPalError && e.issues.some((i) => i === "DUPLICATE_TRANSACTION" || i === "DUPLICATE_INVOICE_ID");
     const definite = e instanceof PayPalError && e.status >= 400 && e.status < 500 && !duplicate;
     if (definite) {
+      // Even a plain refusal is checked against PayPal's own record (our row ID is the
+      // invoice ID) before anything is called failed: a share PayPal did take is
+      // recorded as paid, never shown to the donor as uncharged.
+      try {
+        const view = await onPayPal(c.orderId, c.id, c.amountCents);
+        if (view.state === "completed" || view.state === "pending") return settle(view);
+        if (view.state === "unclear") return false; // Left open for a person - never called failed.
+      } catch {
+        return false; // PayPal unreachable: leave it pending. The next retry checks first.
+      }
       await markCaptureFailed(c, issue);
       return false;
     }
     // Uncertain: PayPal may have the money. Look before deciding anything.
     try {
-      return await settle(await onPayPal(c.orderId, c.id), issue);
+      return await settle(await onPayPal(c.orderId, c.id, c.amountCents), issue);
     } catch {
       return false; // PayPal unreachable: leave it pending. The next retry checks first.
     }
@@ -488,9 +524,10 @@ async function reconcileNeedCaptures(needId: string): Promise<boolean> {
   let ok = true;
   for (const c of open) {
     try {
-      const view = await onPayPal(c.orderId, c.id);
+      const view = await onPayPal(c.orderId, c.id, c.amountCents);
       if (view.state === "completed") await recordCaptureSuccess(c, view.paypalCaptureId, "system");
-      else if (view.state === "pending") ok = false;
+      // Still processing, or something only a person can settle: never void holds behind it.
+      else if (view.state === "pending" || view.state === "unclear") ok = false;
     } catch (e) {
       ok = false;
       console.error("Couldn't check capture with PayPal", { captureId: c.id, error: e instanceof Error ? e.message : e });
@@ -557,7 +594,10 @@ async function cancelRemainingHolds(needId: string, charityId: string, merchantI
  * need; a reviewer marks it not proven. Refused while a release is running.
  * Donors are emailed only once PayPal confirmed every hold is cancelled.
  */
-export async function cancelNeed(actor: { kind: "charity"; ctx: CharityContext } | { kind: "reviewer"; ctx: ReviewerContext }, needId: string): Promise<boolean> {
+export async function cancelNeed(
+  actor: { kind: "charity"; ctx: CharityContext } | { kind: "reviewer"; ctx: ReviewerContext } | { kind: "system"; reason: string },
+  needId: string,
+): Promise<boolean> {
   const db = getDb();
   const need = await db.transaction(async (tx) => {
     const n = await lockNeed(tx, needId, actor.kind === "charity" ? actor.ctx.charityId : undefined);
@@ -574,10 +614,10 @@ export async function cancelNeed(actor: { kind: "charity"; ctx: CharityContext }
       .update(releases)
       .set({ status: "rejected", note: "Need cancelled" })
       .where(and(eq(releases.needId, n.id), inArray(releases.status, ["pending_review", "failed"])));
-    await tx.update(needs).set({ status: actor.kind === "charity" ? "cancelled" : "not_proven" }).where(eq(needs.id, n.id));
+    await tx.update(needs).set({ status: actor.kind === "reviewer" ? "not_proven" : "cancelled" }).where(eq(needs.id, n.id));
     return n;
   });
-  const ok = await cancelRemainingHolds(need.id, need.charityId, need.merchantId, actor.kind, actor.ctx.userId);
+  const ok = await cancelRemainingHolds(need.id, need.charityId, need.merchantId, actor.kind, actor.kind === "system" ? undefined : actor.ctx.userId);
   if (ok) await emailDonorsAfterSettlement(need.id, "released");
   return ok;
 }
