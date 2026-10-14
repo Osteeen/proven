@@ -112,6 +112,21 @@ export function ReviewerHeader({ signOut }: { signOut: React.ReactNode }) {
   );
 }
 
+/** A clear way back: arrow, readable text, and a hover state that shows it is a link. */
+export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="group -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-medium text-ink-soft transition-colors duration-(--duration-quick) hover:bg-[#efece4] hover:text-ink"
+    >
+      <svg viewBox="0 0 16 16" className="h-4 w-4 transition-transform duration-(--duration-quick) group-hover:-translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d="M10 3.5 5.5 8l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {children}
+    </Link>
+  );
+}
+
 export function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link

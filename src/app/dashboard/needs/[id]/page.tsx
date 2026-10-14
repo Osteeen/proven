@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AnimatedMoney } from "@/components/motion/animated-money";
 import { ConfirmButton } from "@/components/motion/confirm-button";
 import { SignOutButton } from "@/components/motion/sign-out-button";
-import { CharityHeader, DemoBanner, Money, NeedStatus, StatusPill, formatDate } from "@/components/ui";
+import { BackLink, CharityHeader, DemoBanner, Money, NeedStatus, StatusPill, formatDate } from "@/components/ui";
 import { requireCharity } from "@/server/auth/access";
 import { formatUsd } from "@/server/money";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
@@ -54,9 +54,7 @@ export default async function ManageNeedPage({ params }: { params: Promise<{ id:
       <CharityHeader signOut={<SignOutButton />} />
       {ctx.isDemo && <DemoBanner />}
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-        <Link href="/dashboard" className="text-sm text-ink-muted underline-offset-4 hover:text-ink hover:underline">
-          Back to dashboard
-        </Link>
+        <BackLink href="/dashboard">Back to dashboard</BackLink>
         <div className="rise-in mt-3 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <NeedStatus status={n.status} />

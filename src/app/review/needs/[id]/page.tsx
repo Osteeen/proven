@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConfirmButton } from "@/components/motion/confirm-button";
 import { SignOutButton } from "@/components/motion/sign-out-button";
-import { DemoBanner, Money, NeedStatus, ReviewerHeader, StatusPill, formatDate } from "@/components/ui";
+import { BackLink, DemoBanner, Money, NeedStatus, ReviewerHeader, StatusPill, formatDate } from "@/components/ui";
 import { requireReviewer } from "@/server/auth/access";
 import { formatUsd } from "@/server/money";
 import { getNeedForReviewer } from "@/server/releases/queries";
@@ -32,9 +31,7 @@ export default async function ReviewNeedPage({ params }: { params: Promise<{ id:
       <ReviewerHeader signOut={<SignOutButton />} />
       {reviewer.isDemo && <DemoBanner />}
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-        <Link href="/review" className="text-sm text-ink-muted underline-offset-4 hover:text-ink hover:underline">
-          Back to review queue
-        </Link>
+        <BackLink href="/review">Back to review queue</BackLink>
         <div className="rise-in mt-3">
           <NeedStatus status={n.status} />
           <h1 className="mt-2 font-serif text-3xl leading-tight text-ink">{n.title}</h1>
