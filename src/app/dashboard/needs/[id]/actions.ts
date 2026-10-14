@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireCharity } from "@/server/auth/access";
 import { toCents } from "@/server/money";
 import { MAX_PROOF_BYTES, ProofError, submitReceipt } from "@/server/proofs/service";
+import { RecipientCheckError, startRecipientCheck } from "@/server/proofs/recipients";
 import { cancelNeed, ReleaseError, requestRelease } from "@/server/releases/service";
+import { SupplierError, completeSupplierPayment, inviteSupplier, refreshInvitedSupplier, startSupplierPayment } from "@/server/suppliers/service";
 
 export type ReleaseFormState = { error?: string; done?: "completed" | "pending_review" | "failed"; amount?: string; kind?: string };
 
@@ -70,5 +72,81 @@ export async function uploadReceiptAction(needId: string, _prev: ReceiptUploadSt
     if (e instanceof ProofError) return { error: e.message };
     console.error("Receipt upload failed", e?.constructor?.name); // never the message: it can carry query parameters
     return { error: "Couldn't save the receipt. Try again." };
+  }
+}
+
+export type PaySupplierState = { error?: string; approveUrl?: string; supplierId?: string; amount?: string; description?: string };
+
+/** The charity starts paying a connected supplier for its own need; the browser then goes to PayPal to approve. */
+export async function paySupplierAction(needId: string, _prev: PaySupplierState, formData: FormData): Promise<PaySupplierState> {
+  const ctx = await requireCharity();
+  const input = { supplierId: str(formData.get("supplierId")), amount: str(formData.get("amount")).trim(), description: str(formData.get("description")) };
+  try {
+    const { approveUrl } = await startSupplierPayment(ctx, needId, input);
+    return { approveUrl };
+  } catch (e) {
+    const error = e instanceof SupplierError ? e.message : "Couldn't start the payment. Nothing was paid - try again.";
+    if (!(e instanceof SupplierError)) console.error("Supplier payment start failed", e?.constructor?.name);
+    return { error, ...input };
+  }
+}
+
+export type InviteSupplierState = { error?: string; sent?: "invited" | "connected"; name?: string; email?: string };
+
+/** The charity invites a supplier to connect PayPal. The invite goes to the supplier's email (demo inbox in the sandbox). */
+export async function inviteSupplierAction(needId: string, _prev: InviteSupplierState, formData: FormData): Promise<InviteSupplierState> {
+  const ctx = await requireCharity();
+  const name = str(formData.get("name"));
+  const email = str(formData.get("email"));
+  try {
+    const r = await inviteSupplier(ctx, { name, email });
+    refresh(needId);
+    return { sent: r.status };
+  } catch (e) {
+    const error = e instanceof SupplierError ? e.message : "Couldn't send the invite. Try again.";
+    if (!(e instanceof SupplierError)) console.error("Supplier invite failed", e?.constructor?.name);
+    return { error, name, email };
+  }
+}
+
+/** Asks PayPal whether an invited supplier has connected yet. */
+export async function checkSupplierAction(needId: string, supplierId: string): Promise<{ error?: string }> {
+  const ctx = await requireCharity();
+  try {
+    const status = await refreshInvitedSupplier(ctx, supplierId);
+    refresh(needId);
+    return status === "connected" ? {} : { error: "Not connected yet. The supplier needs to finish connecting PayPal from the invite email." };
+  } catch {
+    return { error: "Couldn't reach PayPal. Try again." };
+  }
+}
+
+/** Re-checks an unfinished supplier payment with PayPal (for when the charity didn't come back from PayPal). */
+export async function checkSupplierPaymentAction(needId: string, paymentId: string): Promise<{ error?: string }> {
+  const ctx = await requireCharity();
+  try {
+    const r = await completeSupplierPayment(ctx, paymentId);
+    refresh(needId);
+    return r.status === "completed" ? {} : { error: r.message };
+  } catch {
+    return { error: "Couldn't reach PayPal. Try again." };
+  }
+}
+
+export type RecipientCheckState = { error?: string; numbers?: string };
+
+/** The charity sends the recipient check for its own need. The numbers are never logged or kept. */
+export async function startRecipientCheckAction(needId: string, _prev: RecipientCheckState, formData: FormData): Promise<RecipientCheckState> {
+  const ctx = await requireCharity();
+  const numbers = str(formData.get("numbers"));
+  if (numbers.length > 40_000) return { error: "That list is too long - enter up to 1,000 numbers." };
+  try {
+    await startRecipientCheck(ctx, needId, { numbers, consent: str(formData.get("consent")) === "yes" });
+    refresh(needId);
+    return {};
+  } catch (e) {
+    if (e instanceof RecipientCheckError) return { error: e.message, numbers };
+    console.error("Recipient check failed", e?.constructor?.name); // never the message: it could echo a number
+    return { error: "Couldn't send the recipient check. Try again.", numbers };
   }
 }

@@ -30,6 +30,7 @@ const TRIMMED = [
   "AUTH_URL",
   "DEMO_LOGIN",
   "JOB_SECRET",
+  "RECIPIENT_HMAC_KEY",
   "ANTHROPIC_API_KEY",
   "DEMO_CHARITY_TRACKING_ID",
   "DEMO_CHARITY_MERCHANT_ID",
@@ -66,6 +67,12 @@ const startupSchema = z
     // Shared with the GitHub Actions schedule that calls /api/jobs/daily.
     JOB_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
     PAYPAL_WEBHOOK_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+    // Keys recipient phone fingerprints. Its own secret, so rotating AUTH_SECRET never breaks duplicate matching.
+    RECIPIENT_HMAC_KEY: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
+  })
+  .refine((e) => process.env.NODE_ENV !== "production" || Boolean(e.RECIPIENT_HMAC_KEY), {
+    message: "required in production",
+    path: ["RECIPIENT_HMAC_KEY"],
   })
   .refine((e) => process.env.NODE_ENV !== "production" || e.AUTH_URL.startsWith("https://"), {
     message: "must be https in production",

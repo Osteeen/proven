@@ -51,8 +51,26 @@ try {
     `insert into memberships (user_id, charity_id, role) values ($1, $2, 'charity_admin') on conflict do nothing`,
     [charityUser, charityId],
   );
+
+  // The demo supplier: the sandbox business that connected PayPal to Proven in test 11/16.
+  const supplier = process.env.DEMO_SUPPLIER_TRACKING_ID && process.env.DEMO_SUPPLIER_MERCHANT_ID && process.env.DEMO_SUPPLIER_EMAIL
+    ? { trackingId: process.env.DEMO_SUPPLIER_TRACKING_ID.trim(), supplierMerchantId: process.env.DEMO_SUPPLIER_MERCHANT_ID.trim(), supplierEmail: process.env.DEMO_SUPPLIER_EMAIL.trim() }
+    : fromEnv
+      ? null
+      : JSON.parse(readFileSync(join(here, "..", "sandbox", ".state", "test11.json"), "utf8"));
+  if (supplier?.trackingId && supplier.supplierMerchantId && supplier.supplierEmail) {
+    await client.query(
+      // Seeded as already verified, so the main demo path passes; a supplier a visitor invites shows the review path.
+      `insert into suppliers (name, paypal_email, paypal_tracking_id, paypal_merchant_id, status, is_demo, invited_by_charity_id, connected_at, verified_at)
+       values ($1, $2, $3, $4, 'connected', true, $5, now(), now())
+       on conflict (paypal_tracking_id) do update set name = excluded.name, paypal_email = excluded.paypal_email,
+         paypal_merchant_id = excluded.paypal_merchant_id, status = 'connected', is_demo = true,
+         verified_at = coalesce(suppliers.verified_at, now()), updated_at = now()`,
+      ["Valley Supply Co. - Demo supplier (PayPal sandbox)", supplier.supplierEmail.toLowerCase(), supplier.trackingId, supplier.supplierMerchantId, charityId],
+    );
+  }
   await client.query("commit");
-  console.log(`seeded: charity ${charityId} (merchant ${test7.sellerMerchantId}), demo charity admin, demo reviewer`);
+  console.log(`seeded: charity ${charityId} (merchant ${test7.sellerMerchantId}), demo charity admin, demo reviewer${supplier ? ", demo supplier" : ""}`);
 } catch (e) {
   await client.query("rollback");
   throw e;

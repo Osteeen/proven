@@ -2,6 +2,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { markLapsedHolds } from "@/server/jobs/lapsed-holds";
 import { sweepStuckProofs } from "@/server/proofs/service";
+import { sweepRecipientChecks } from "@/server/proofs/recipients";
+import { sweepSupplierPayments } from "@/server/suppliers/service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,8 @@ export async function POST(req: NextRequest) {
   if (!authorized(req.headers.get("authorization"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const lapsed = await markLapsedHolds();
   const stuckProofs = await sweepStuckProofs();
-  console.info("Daily jobs", { lapsed, stuckProofs });
-  return NextResponse.json({ ok: true, lapsed, stuckProofs });
+  const supplierPayments = await sweepSupplierPayments();
+  const recipientChecks = await sweepRecipientChecks();
+  console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks });
+  return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks });
 }

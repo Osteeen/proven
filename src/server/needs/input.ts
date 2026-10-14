@@ -12,11 +12,14 @@ export const PROOF_LABELS: Record<ProofType, string> = {
   supplier_paypal_payment: "Supplier paid with PayPal",
 };
 
-// Proof the charity produces itself vs proof from someone else. Release needs
-// two checks from different sources, so every need requires at least one
-// independent (third-party) proof.
-export const OWN_EVIDENCE: readonly ProofType[] = ["receipt", "live_photo"];
-export const INDEPENDENT_PROOF: readonly ProofType[] = ["supplier_confirmation", "supplier_paypal_payment", "recipient_confirmation"];
+/**
+ * Every new need is bought through Proven with PayPal (Osteen, Oct 14): PayPal's
+ * record of paying the supplier is the main proof, so it is always required.
+ * The charity picks at least one second check to go with it.
+ */
+export const MAIN_PROOF: ProofType = "supplier_paypal_payment";
+// Live photo joins once in-app capture is built; until then a need relying on it could never be released.
+export const SECOND_CHECK_CHOICES: readonly ProofType[] = ["receipt", "supplier_confirmation", "recipient_confirmation"];
 
 export const FUNDING_MODELS = ["reimbursement", "staged"] as const;
 export type FundingModel = (typeof FUNDING_MODELS)[number];
@@ -50,7 +53,7 @@ const schema = z.object({
   amount: z.string().trim(),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a delivery date"),
   fundingModel: z.enum(FUNDING_MODELS, { message: "Choose how the money is released" }),
-  requiredProof: z.array(z.enum(PROOF_TYPES)).min(2, "Choose at least two kinds of proof - release needs two checks to agree"),
+  requiredProof: z.array(z.enum(PROOF_TYPES), { message: "Choose a second check" }).max(10),
 });
 
 /**
@@ -70,10 +73,10 @@ export function parseNeedInput(
     }
   }
 
-  const uniqueProof = parsed.success ? [...new Set(parsed.data.requiredProof)] : [];
-  if (parsed.success && uniqueProof.length < 2) errors.requiredProof = "Choose at least two kinds of proof - release needs two checks to agree";
-  else if (parsed.success && !uniqueProof.some((p) => INDEPENDENT_PROOF.includes(p)))
-    errors.requiredProof = "Add at least one independent confirmation - your own evidence alone can't release money";
+  // The PayPal supplier payment is always required, whatever the form sent.
+  const uniqueProof = parsed.success ? [MAIN_PROOF, ...new Set(parsed.data.requiredProof.filter((p) => SECOND_CHECK_CHOICES.includes(p)))] : [];
+  if (parsed.success && !uniqueProof.some((p) => SECOND_CHECK_CHOICES.includes(p)))
+    errors.requiredProof = "Choose at least one second check to go with the PayPal supplier payment";
 
   let amountCents: number | undefined;
   if (typeof raw.amount === "string") {

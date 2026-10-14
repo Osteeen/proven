@@ -1,15 +1,17 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { reviewerMayActOn, type CharityContext, type ReviewerContext } from "@/server/auth/access";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+import type { CharityContext, ReviewerContext } from "@/server/auth/access";
+// Database-only scope helper: keeps Auth.js out of this module (and its tests).
+import { reviewerMayActOn } from "@/server/auth/scope";
 import { getDb } from "@/server/db/client";
-import { captures, charities, donations, ledgerEntries, memberships, needs, releases } from "@/server/db/schema";
+import { captures, charities, donations, ledgerEntries, memberships, needs, proofs, releases, supplierPayments, suppliers } from "@/server/db/schema";
 import { cents, formatUsd } from "@/server/money";
 import { PayPalError } from "@/server/paypal/client";
 import { captureAuthorization, getOrderCaptures, voidAuthorization } from "@/server/paypal/orders";
 import { emailDonorsAfterSettlement } from "./emails";
 import { authorizationForCapture } from "./holds";
-import { advanceCapCents, allocate, reviewReason } from "./rules";
+import { SECOND_CHECKS, advanceCapCents, allocate, finalReleaseBlock, proofChecked, reviewReason, type ReleaseProof } from "./rules";
 
 export class ReleaseError extends Error {}
 
@@ -30,6 +32,7 @@ async function lockNeed(tx: Tx, needId: string, charityId?: string) {
       amountCents: needs.amountCents,
       status: needs.status,
       fundingModel: needs.fundingModel,
+      requiredProof: needs.requiredProof,
       charityStatus: charities.status,
       trustTier: charities.trustTier,
       thresholdCents: charities.reviewReleasesAboveCents,
@@ -40,6 +43,57 @@ async function lockNeed(tx: Tx, needId: string, charityId?: string) {
     .where(charityId ? and(eq(needs.id, needId), eq(needs.charityId, charityId)) : eq(needs.id, needId))
     .for("update", { of: needs });
   return need;
+}
+
+/** What the final-release rule looks at, read inside the caller's transaction (the need is locked). */
+export async function releaseProof(tx: Tx, need: { id: string; requiredProof: string[] }): Promise<ReleaseProof> {
+  const byKind = await tx
+    .select({ kind: proofs.kind, status: proofs.status, n: sql<number>`count(*)::int` })
+    .from(proofs)
+    .where(eq(proofs.needId, need.id))
+    .groupBy(proofs.kind, proofs.status);
+  // Supplier money counts only while every link in the chain still stands: the payment
+  // completed and isn't disputed, the supplier is verified, and its proof passes.
+  const [paid] = await tx
+    .select({ c: sql<number>`coalesce(sum(${supplierPayments.amountCents}), 0)::int` })
+    .from(supplierPayments)
+    .innerJoin(suppliers, eq(suppliers.id, supplierPayments.supplierId))
+    .innerJoin(proofs, eq(proofs.id, supplierPayments.proofId))
+    .where(
+      and(
+        eq(supplierPayments.needId, need.id),
+        eq(supplierPayments.status, "completed"),
+        isNull(supplierPayments.disputedAt),
+        eq(suppliers.status, "connected"),
+        isNotNull(suppliers.verifiedAt),
+        eq(proofs.status, "passed"),
+      ),
+    );
+  const [taken] = await tx
+    .select({ c: sql<number>`coalesce(sum(${donations.capturedCents}), 0)::int` })
+    .from(donations)
+    .where(eq(donations.needId, need.id));
+  return {
+    requiresSupplierPayment: need.requiredProof.includes("supplier_paypal_payment"),
+    supplierPaidCents: paid?.c ?? 0,
+    passedKinds: [...new Set(byKind.filter((r) => r.status === "passed").map((r) => r.kind))],
+    requiredSecondChecks: need.requiredProof.filter((k) => (SECOND_CHECKS as readonly string[]).includes(k)),
+    openIssues: byKind.filter((r) => r.status !== "passed").reduce((s, r) => s + r.n, 0),
+    releasedCents: taken?.c ?? 0,
+  };
+}
+
+/** The release rule's inputs for the charity's own need page - the same numbers the release itself is checked against. */
+export async function getReleaseProof(ctx: CharityContext, needId: string): Promise<ReleaseProof | null> {
+  if (!UUID.test(needId)) return null;
+  return getDb().transaction(async (tx) => {
+    const [need] = await tx
+      .select({ id: needs.id, requiredProof: needs.requiredProof })
+      .from(needs)
+      .where(and(eq(needs.id, needId), eq(needs.charityId, ctx.charityId)))
+      .limit(1);
+    return need ? releaseProof(tx, need) : null;
+  });
 }
 
 async function liveHolds(tx: Tx, needId: string) {
@@ -103,6 +157,13 @@ export async function requestRelease(
       .limit(1);
     if (stuck) throw new ReleaseError("An earlier release for this need didn't finish. It has to be retried first.");
 
+    // The final-release rule: PayPal supplier payment + a second check, capped at what suppliers were paid.
+    const proof = await releaseProof(tx, need);
+    if (input.kind === "final") {
+      const block = finalReleaseBlock(proof, input.amountCents);
+      if (block) throw new ReleaseError(block);
+    }
+
     // Only a completed DELIVERY release counts as a track record - a small
     // advance must not unlock unreviewed final releases for a new charity.
     const [done] = await tx
@@ -115,6 +176,8 @@ export async function requestRelease(
       completedReleases: done?.n ?? 0,
       amountCents: input.amountCents,
       thresholdCents: need.thresholdCents,
+      proofChecked: proofChecked(proof),
+      requiresSupplierPayment: proof.requiresSupplierPayment,
     });
 
     let row;
@@ -258,6 +321,11 @@ export async function executeRelease(releaseId: string, opts: { allowStuck?: boo
     const existing = await tx.select({ id: captures.id }).from(captures).where(eq(captures.releaseId, rel.id)).limit(1);
     if (existing.length === 0) {
       if (need.charityStatus !== "active") return reject("Charity account on hold - nothing was charged.");
+      // Proof can change after the request (supplier refund, dispute, rejected supplier): check again before money moves.
+      if (rel.kind === "final") {
+        const block = finalReleaseBlock(await releaseProof(tx, need), rel.amountCents);
+        if (block) return reject(`The proof changed since this was requested - nothing was charged. ${block}`);
+      }
       const holds = await liveHolds(tx, need.id);
       const held = holds.reduce((s, h) => s + h.amountCents - h.capturedCents, 0);
       if (held < rel.amountCents) return reject("Held money changed since the request - nothing was charged. Request again.");

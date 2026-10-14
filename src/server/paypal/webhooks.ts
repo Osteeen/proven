@@ -5,6 +5,7 @@ import { captures, donations, ledgerEntries, refunds, webhookEvents } from "@/se
 import { notifyDonorsOfRefunds, recordRefundSuccess } from "@/server/releases/refunds";
 import { recordCaptureSuccess } from "@/server/releases/service";
 import { toCents } from "@/server/money";
+import { isSupplierCapture, markSupplierPaymentDisputed, markSupplierPaymentUndone } from "@/server/suppliers/service";
 import { paypalRequest } from "./client";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,6 +19,7 @@ type WebhookEvent = {
     amount?: { value?: string };
     invoice_id?: string;
     links?: { rel?: string; href?: string }[];
+    disputed_transactions?: { seller_transaction_id?: string }[];
     supplementary_data?: { related_ids?: { authorization_id?: string } };
   };
 };
@@ -70,6 +72,28 @@ export async function handleVerifiedEvent(event: WebhookEvent): Promise<string> 
 
   let outcome = "ignored";
   const r = event.resource ?? {};
+  // A charity's payment to a supplier made through Proven: a refund or reversal
+  // means the proof it backed goes to a person.
+  const upCapture = r.links?.find((l) => l.rel === "up")?.href?.match(/\/captures\/([^/?]+)/)?.[1];
+  const supplierCapture =
+    event.event_type === "PAYMENT.CAPTURE.REFUNDED" ? upCapture : event.event_type === "PAYMENT.CAPTURE.REVERSED" ? (upCapture ?? r.id) : undefined;
+  if (supplierCapture && (await isSupplierCapture(supplierCapture))) {
+    const changed = await markSupplierPaymentUndone(supplierCapture, event.event_type === "PAYMENT.CAPTURE.REFUNDED" ? "refunded" : "reversed");
+    outcome = changed ? "supplier payment undone - proof needs review" : "supplier payment already marked";
+    await db.update(webhookEvents).set({ outcome }).where(eq(webhookEvents.id, event.id));
+    return outcome;
+  }
+  // A dispute on a supplier payment (the charity is the buyer and can claim the money back).
+  if (event.event_type === "CUSTOMER.DISPUTE.CREATED" || event.event_type === "CUSTOMER.DISPUTE.UPDATED") {
+    const ids = (r.disputed_transactions ?? []).map((t) => t.seller_transaction_id).filter((x): x is string => typeof x === "string");
+    let marked = 0;
+    for (const id of ids) if (await isSupplierCapture(id)) marked += Number(await markSupplierPaymentDisputed(id));
+    if (ids.length > 0 && (marked > 0 || (await Promise.all(ids.map(isSupplierCapture))).some(Boolean))) {
+      outcome = marked > 0 ? "supplier payment disputed - proof needs review" : "supplier dispute already marked";
+      await db.update(webhookEvents).set({ outcome }).where(eq(webhookEvents.id, event.id));
+      return outcome;
+    }
+  }
   // The PayPal app is shared with another project, so PayPal sends this webhook
   // every payment on the app. Only events touching Proven's own holds count;
   // the rest are ignored quietly instead of raising review alerts.

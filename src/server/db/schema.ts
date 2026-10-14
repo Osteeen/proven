@@ -336,7 +336,7 @@ export const memberships = pgTable(
 // In demo mode they are delivered to the in-app demo inbox, so the body is kept
 // here; with a real email provider only the metadata would be stored, because
 // bodies can carry private gift links.
-export const messageKind = pgEnum("message_kind", ["gift_held", "gift_added", "gift_proven", "gift_released", "gift_refunded"]);
+export const messageKind = pgEnum("message_kind", ["gift_held", "gift_added", "gift_proven", "gift_released", "gift_refunded", "supplier_invite", "supplier_confirm_request", "recipient_check"]);
 export const messages = pgTable(
   "messages",
   {
@@ -346,6 +346,8 @@ export const messages = pgTable(
     subject: text("subject").notNull(),
     bodyText: text("body_text"),
     donationId: uuid("donation_id").references(() => donations.id, { onDelete: "restrict" }),
+    // For mail that isn't about a donation (supplier invites): which charity it concerns.
+    charityId: uuid("charity_id").references(() => charities.id, { onDelete: "restrict" }),
     transport: text("transport").notNull(),
     createdAt: createdAt(),
   },
@@ -442,6 +444,90 @@ export const proofFiles = pgTable(
   ],
 );
 
+/**
+ * Businesses charities buy from. A supplier connects its own PayPal business
+ * account to Proven once (Partner Referrals consent); after that any charity can
+ * pay it through Proven. PayPal refuses payments to a supplier that hasn't
+ * connected (403 PAYEE_NOT_CONSENTED, sandbox test 16).
+ */
+export const supplierStatus = pgEnum("supplier_status", ["invited", "connected", "rejected"]);
+
+export const suppliers = pgTable(
+  "suppliers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    // The PayPal email the charity entered when inviting (lower-cased).
+    paypalEmail: text("paypal_email").notNull(),
+    paypalTrackingId: text("paypal_tracking_id").notNull().unique(),
+    paypalMerchantId: text("paypal_merchant_id").unique(),
+    status: supplierStatus("status").notNull().default("invited"),
+    isDemo: boolean("is_demo").notNull().default(false),
+    invitedByCharityId: uuid("invited_by_charity_id").references(() => charities.id, { onDelete: "restrict" }),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    // What PayPal holds for the connected account - the charity typed the name above.
+    paypalLegalName: text("paypal_legal_name"),
+    paypalCountry: text("paypal_country"),
+    // A Proven reviewer checked the business against a listing Proven found itself.
+    // Until then its payments go to review instead of passing on their own.
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by").references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // One supplier per PayPal email in each pool: two invites at once can't make two rows.
+    unique("suppliers_email_pool").on(t.paypalEmail, t.isDemo),
+    check("suppliers_connected_has_merchant", sql`${t.status} <> 'connected' or ${t.paypalMerchantId} is not null`),
+  ],
+);
+
+/**
+ * A charity paying a supplier with PayPal, through Proven: the charity approves
+ * on PayPal, the money goes straight from its PayPal to the supplier's. This is
+ * the main proof that donors' money bought something real.
+ */
+export const supplierPaymentStatus = pgEnum("supplier_payment_status", ["created", "completed", "failed", "cancelled", "refunded"]);
+
+export const supplierPayments = pgTable(
+  "supplier_payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    needId: uuid("need_id").notNull(),
+    charityId: uuid("charity_id").notNull(),
+    supplierId: uuid("supplier_id")
+      .notNull()
+      .references(() => suppliers.id, { onDelete: "restrict" }),
+    amountCents: integer("amount_cents").notNull(),
+    description: text("description").notNull(),
+    paypalOrderId: text("paypal_order_id").unique(),
+    paypalCaptureId: text("paypal_capture_id").unique(),
+    status: supplierPaymentStatus("status").notNull().default("created"),
+    // The proof row this payment created once it completed.
+    proofId: uuid("proof_id").unique(),
+    failure: text("failure"),
+    // Set (under the need lock) just before Proven asks PayPal to take the money.
+    // From then on the payment counts toward the need's cap until it settles.
+    captureRequestedAt: timestamp("capture_requested_at", { withTimezone: true }),
+    // When the daily job last asked PayPal about this payment (refunds, reversals, stuck captures).
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+    // The payer (the charity) opened a PayPal dispute: it may get the money back.
+    disputedAt: timestamp("disputed_at", { withTimezone: true }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({ name: "supplier_payments_need_charity_fk", columns: [t.needId, t.charityId], foreignColumns: [needs.id, needs.charityId] }).onDelete("restrict"),
+    foreignKey({ name: "supplier_payments_proof_charity_fk", columns: [t.proofId, t.charityId], foreignColumns: [proofs.id, proofs.charityId] }).onDelete("restrict"),
+    index("supplier_payments_need_idx").on(t.needId),
+    check("supplier_payments_amount_positive", sql`${t.amountCents} > 0`),
+  ],
+);
+
 export const refundStatus = pgEnum("refund_status", ["pending", "completed", "failed"]);
 
 /**
@@ -507,5 +593,97 @@ export const ledgerEntries = pgTable(
     index("ledger_charity_created_idx").on(t.charityId, t.createdAt),
     index("ledger_donation_idx").on(t.donationId),
     check("ledger_amount_non_negative", sql`${t.amountCents} >= 0`),
+  ],
+);
+
+/**
+ * Proven asks a supplier, at the email PayPal confirmed for its account, whether
+ * the goods a charity paid for were handed over. One single-use link per
+ * supplier payment; only its hash is stored.
+ */
+export const supplierConfirmationStatus = pgEnum("supplier_confirmation_status", ["requested", "confirmed", "denied"]);
+
+export const supplierConfirmations = pgTable(
+  "supplier_confirmations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    supplierPaymentId: uuid("supplier_payment_id")
+      .notNull()
+      .unique()
+      .references(() => supplierPayments.id, { onDelete: "restrict" }),
+    needId: uuid("need_id").notNull(),
+    charityId: uuid("charity_id").notNull(),
+    supplierId: uuid("supplier_id")
+      .notNull()
+      .references(() => suppliers.id, { onDelete: "restrict" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    status: supplierConfirmationStatus("status").notNull().default("requested"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    proofId: uuid("proof_id").unique(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    foreignKey({ name: "supplier_confirmations_need_charity_fk", columns: [t.needId, t.charityId], foreignColumns: [needs.id, needs.charityId] }).onDelete("restrict"),
+    foreignKey({ name: "supplier_confirmations_proof_charity_fk", columns: [t.proofId, t.charityId], foreignColumns: [proofs.id, proofs.charityId] }).onDelete("restrict"),
+  ],
+);
+
+/**
+ * Post-distribution check: after delivery the charity enters the phone numbers
+ * it recorded at intake (with consent); Proven picks a random sample and texts
+ * each a one-tap question. One check per need. Phone numbers are never stored:
+ * only a keyed fingerprint (to spot the same numbers on other charities' needs)
+ * and, for the sampled few, a masked form while their link is open.
+ */
+export const recipientChecks = pgTable(
+  "recipient_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    needId: uuid("need_id").notNull().unique(),
+    charityId: uuid("charity_id").notNull(),
+    proofId: uuid("proof_id").notNull().unique(),
+    totalRecipients: integer("total_recipients").notNull(),
+    sampleSize: integer("sample_size").notNull(),
+    // Numbers also given on another charity's need - shown to reviewers.
+    sharedNumbers: integer("shared_numbers").notNull().default(0),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    foreignKey({ name: "recipient_checks_need_charity_fk", columns: [t.needId, t.charityId], foreignColumns: [needs.id, needs.charityId] }).onDelete("restrict"),
+    foreignKey({ name: "recipient_checks_proof_charity_fk", columns: [t.proofId, t.charityId], foreignColumns: [proofs.id, proofs.charityId] }).onDelete("restrict"),
+    check("recipient_checks_sizes", sql`${t.sampleSize} >= 1 and ${t.sampleSize} <= ${t.totalRecipients}`),
+  ],
+);
+
+export const recipientAnswer = pgEnum("recipient_answer", ["yes", "no"]);
+
+export const recipientContacts = pgTable(
+  "recipient_contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    checkId: uuid("check_id")
+      .notNull()
+      .references(() => recipientChecks.id, { onDelete: "restrict" }),
+    charityId: uuid("charity_id").notNull(),
+    // Demo and real charities are separate pools: a demo visitor can never match a real recipient's number.
+    isDemo: boolean("is_demo").notNull().default(false),
+    // HMAC of the normalised number with a server secret: matches across needs, can't be reversed by guessing.
+    phoneKey: text("phone_key").notNull(),
+    sampled: boolean("sampled").notNull().default(false),
+    tokenHash: text("token_hash").unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    answer: recipientAnswer("answer"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("recipient_contacts_check_phone").on(t.checkId, t.phoneKey),
+    index("recipient_contacts_phone_idx").on(t.phoneKey),
+    check("recipient_contacts_token_if_sampled", sql`${t.sampled} or ${t.tokenHash} is null`),
   ],
 );

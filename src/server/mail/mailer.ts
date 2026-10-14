@@ -10,6 +10,8 @@ export type Mail = {
   subject: string;
   text: string;
   donationId?: string;
+  /** Set for mail a charity's action sends (supplier invites), so its demo inbox shows it. */
+  charityId?: string;
 };
 
 /**
@@ -18,15 +20,17 @@ export type Mail = {
  * A real provider plugs in here later; it would store only metadata, since a
  * body can carry a donor's private gift link.
  */
-export async function sendMail(mail: Mail): Promise<void> {
+export async function sendMail(mail: Mail, db: Pick<ReturnType<typeof getDb>, "insert"> = getDb()): Promise<void> {
   const transport = process.env.MAIL_TRANSPORT ?? "demo_inbox";
   if (transport !== "demo_inbox") throw new Error(`Mail transport "${transport}" is not set up yet`);
-  await getDb().insert(messages).values({
+  // `db` may be a transaction, so the message is saved with whatever it is about.
+  await db.insert(messages).values({
     kind: mail.kind,
     toEmail: mail.to,
     subject: mail.subject,
     bodyText: mail.text,
     donationId: mail.donationId ?? null,
+    charityId: mail.charityId ?? null,
     transport,
   });
 }

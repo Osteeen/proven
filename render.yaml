@@ -41,6 +41,10 @@ projects:
               # Copy this generated value into the GitHub repo secret JOB_SECRET (daily jobs).
               - key: JOB_SECRET
                 generateValue: true
+              # Keys recipient phone fingerprints (never the numbers themselves). Never rotate it:
+              # a new key stops matching numbers listed before.
+              - key: RECIPIENT_HMAC_KEY
+                generateValue: true
               # The service's https URL, e.g. https://proven.onrender.com - set after the first deploy.
               - key: AUTH_URL
                 sync: false
@@ -66,4 +70,11 @@ projects:
               - key: DEMO_CHARITY_TRACKING_ID
                 sync: false
               - key: DEMO_CHARITY_MERCHANT_ID
+                sync: false
+              # The demo supplier that connected PayPal in sandbox tests 11/16 (sandbox IDs, not secrets).
+              - key: DEMO_SUPPLIER_TRACKING_ID
+                sync: false
+              - key: DEMO_SUPPLIER_MERCHANT_ID
+                sync: false
+              - key: DEMO_SUPPLIER_EMAIL
                 sync: false

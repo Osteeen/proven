@@ -9,7 +9,8 @@ import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
 import { ProofList } from "@/components/proof-list";
 import { listProofsForNeed } from "@/server/proofs/service";
 import { listRefundableNeeds, listReviewQueue, listWebhookAlerts } from "@/server/releases/queries";
-import { approveAction, finishClosingAction, notProvenAction, rejectAction, retryAction } from "./actions";
+import { listSuppliersToVerify, listVerifiedSuppliers, listWithdrawnProofNeeds } from "@/server/suppliers/service";
+import { approveAction, finishClosingAction, notProvenAction, rejectAction, rejectSupplierAction, retryAction, revokeSupplierAction, verifySupplierAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Review queue - Proven", robots: { index: false, follow: false } };
@@ -19,7 +20,14 @@ const requestTime = () => new Date();
 
 export default async function ReviewPage() {
   const reviewer = await requireReviewer();
-  const [queue, refundable, alerts] = await Promise.all([listReviewQueue(reviewer, requestTime()), listRefundableNeeds(reviewer), listWebhookAlerts(reviewer)]);
+  const [queue, refundable, alerts, toVerify, withdrawn, verified] = await Promise.all([
+    listReviewQueue(reviewer, requestTime()),
+    listRefundableNeeds(reviewer),
+    listWebhookAlerts(reviewer),
+    listSuppliersToVerify(reviewer),
+    listWithdrawnProofNeeds(reviewer),
+    listVerifiedSuppliers(reviewer),
+  ]);
   // Proof for each waiting release (the queue is already limited to charities this reviewer may see).
   const proofsByNeed = new Map(
     await Promise.all(
@@ -53,6 +61,77 @@ export default async function ReviewPage() {
                 <li key={a.id} className="flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-[10px] border border-held/30 bg-held-bg px-4 py-3 font-mono text-xs text-held-text">
                   <span>{a.eventType} - {a.resourceId ?? "no id"}</span>
                   <span>{formatDate(a.receivedAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {withdrawn.length > 0 && (
+          <section className="rise-in mt-8" style={{ animationDelay: "65ms" }}>
+            <h2 className="font-serif text-lg text-ink">Proof withdrawn after release</h2>
+            <p className="mt-1 max-w-2xl text-xs text-ink-muted">
+              Donors were charged more than the supplier payments that still stand - a supplier refunded, the charity disputed a payment, or a supplier was rejected. Check it, and refund donors if the delivery isn&apos;t real.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {withdrawn.map((w) => (
+                <li key={w.needId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-[10px] border border-held/30 bg-held-bg px-4 py-3 text-sm text-held-text">
+                  <span className="min-w-0">
+                    <Link href={`/review/needs/${w.needId}`} className="underline decoration-held/40 underline-offset-4 hover:decoration-held-text">
+                      {w.needTitle}
+                    </Link>
+                    <span className="block text-xs">{w.charityName}</span>
+                  </span>
+                  <span className="font-mono text-xs">
+                    charged {formatUsd(w.releasedCents)} - supplier payments standing {formatUsd(w.supplierPaidCents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {toVerify.length > 0 && (
+          <section className="rise-in mt-8" style={{ animationDelay: "70ms" }}>
+            <h2 className="font-serif text-lg text-ink">Suppliers to verify</h2>
+            <p className="mt-1 max-w-2xl text-xs text-ink-muted">
+              Find the business yourself - its website or a public listing, not details from the charity - and check it matches the name PayPal holds. Once verified, payments to it pass on their own.
+            </p>
+            <ul className="mt-3 space-y-3">
+              {toVerify.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] border border-line bg-card px-4 py-3 text-sm">
+                  <span className="min-w-0">
+                    <span className="text-ink">{s.name}</span>
+                    <span className="block text-xs text-ink-muted">
+                      PayPal name: {s.paypalName ?? "not known yet"}
+                      {s.country ? ` (${s.country})` : ""} - {s.email}
+                    </span>
+                    <span className="block text-xs text-ink-muted">
+                      Invited by {s.invitedBy ?? "Proven"}
+                      {s.paidCents > 0 ? ` - ${formatUsd(s.paidCents)} paid to it, waiting on this check` : ""}
+                    </span>
+                  </span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <ConfirmButton
+                      label="Not a real supplier"
+                      tone="danger"
+                      title="Reject this supplier?"
+                      body="It can't be paid through Proven any more, and payments already made to it stop counting as proof."
+                      confirmLabel="Reject supplier"
+                      pendingLabel="Rejecting..."
+                      cancelLabel="Not now"
+                      action={rejectSupplierAction.bind(null, s.id)}
+                    />
+                    <ConfirmButton
+                      label="Verify supplier"
+                      title="Verify this supplier?"
+                      body="You found this business yourself and it is a real, independent supplier. Payments to it then count as proof without review."
+                      confirmLabel="Verify"
+                      pendingLabel="Verifying..."
+                      cancelLabel="Not now"
+                      action={verifySupplierAction.bind(null, s.id)}
+                    />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -227,6 +306,37 @@ export default async function ReviewPage() {
                   >
                     Refund
                   </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {verified.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-serif text-lg text-ink">Verified suppliers</h2>
+            <p className="mt-1 max-w-2xl text-xs text-ink-muted">
+              If a supplier turns out not to be independent - it works with a charity, or isn&apos;t a real business - revoke it. Proof resting on it fails, and needs already released on it show above.
+            </p>
+            <ul className="mt-3 divide-y divide-dashed divide-line rounded-[10px] border border-line bg-card">
+              {verified.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm">
+                  <span className="min-w-0">
+                    <span className="text-ink">{s.name}</span>
+                    <span className="block text-xs text-ink-muted">
+                      PayPal name: {s.paypalName ?? "not known yet"}
+                      {s.country ? ` (${s.country})` : ""} - verified {formatDate(s.verifiedAt)} - {formatUsd(s.paidCents)} paid through Proven
+                    </span>
+                  </span>
+                  <ConfirmButton
+                    label="Revoke"
+                    tone="danger"
+                    title="Revoke this supplier?"
+                    body="It can't be paid through Proven any more. Every payment and confirmation from it stops counting as proof, and needs already released on it are flagged for refund."
+                    confirmLabel="Revoke supplier"
+                    pendingLabel="Revoking..."
+                    cancelLabel="Not now"
+                    action={revokeSupplierAction.bind(null, s.id)}
+                  />
                 </li>
               ))}
             </ul>

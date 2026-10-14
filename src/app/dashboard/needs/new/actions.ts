@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCharity } from "@/server/auth/access";
 import { parseNeedInput, type FieldErrors } from "@/server/needs/input";
-import { createNeed } from "@/server/needs/repo";
+import { NeedLimitError, createNeed } from "@/server/needs/repo";
 
 export type NeedFormState = {
   errors?: FieldErrors & { form?: string };
@@ -30,7 +30,8 @@ export async function createNeedAction(_prev: NeedFormState, formData: FormData)
   let id: string;
   try {
     id = await createNeed(ctx, parsed.value);
-  } catch {
+  } catch (e) {
+    if (e instanceof NeedLimitError) return { errors: { form: e.message }, values };
     return { errors: { form: "Couldn't save the need. Check the details and try again." }, values };
   }
   revalidatePath("/");

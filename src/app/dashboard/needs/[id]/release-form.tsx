@@ -16,32 +16,44 @@ function parseCents(raw: string): number | undefined {
   return Number(w) * 100 + Number(f.padEnd(2, "0"));
 }
 
+/**
+ * One kind of release per form: the booking payment (staged needs, before the
+ * supplier is paid) or the final release (after the supplier payment and a
+ * second check, capped at what suppliers were paid).
+ */
 export function ReleaseForm({
   needId,
+  kind,
   heldCents,
   advanceLeftCents,
-  staged,
+  finalRoomCents,
+  proofChecked,
+  requiresSupplierPayment,
   donorCount,
   trustTier,
   completedReleases,
   thresholdCents,
 }: {
   needId: string;
+  kind: "advance" | "final";
   heldCents: number;
   advanceLeftCents: number;
-  staged: boolean;
+  /** Most a final release may take under the supplier-payment rule; null when the need predates it. */
+  finalRoomCents: number | null;
+  proofChecked: boolean;
+  requiresSupplierPayment: boolean;
   donorCount: number;
   trustTier: "new" | "established" | "trusted";
   completedReleases: number;
   thresholdCents: number;
 }) {
   const [state, action, pending] = useActionState<ReleaseFormState, FormData>(requestReleaseAction.bind(null, needId), {});
-  const [kind, setKind] = useState<"final" | "advance">(state.kind === "advance" ? "advance" : "final");
   const [amount, setAmount] = useState(state.amount ?? "");
   const amountCents = parseCents(amount);
-  const max = kind === "advance" ? advanceLeftCents : heldCents;
+  const capByRule = kind === "final" && finalRoomCents !== null && finalRoomCents < heldCents;
+  const max = kind === "advance" ? advanceLeftCents : capByRule ? finalRoomCents! : heldCents;
   const tooMuch = amountCents !== undefined && amountCents > max;
-  const review = amountCents ? reviewReason({ kind, trustTier, completedReleases, amountCents, thresholdCents }) : null;
+  const review = amountCents ? reviewReason({ kind, trustTier, completedReleases, amountCents, thresholdCents, proofChecked, requiresSupplierPayment }) : null;
   const pct = amountCents && heldCents ? Math.min(100, Math.round((amountCents / heldCents) * 100)) : 0;
 
   if (state.done) {
@@ -63,28 +75,7 @@ export function ReleaseForm({
 
   return (
     <form action={action} className="space-y-5" noValidate>
-      {staged && advanceLeftCents > 0 && (
-        <div role="radiogroup" aria-label="What is this release for" className="grid gap-1 rounded-[10px] border border-line bg-[#efece4] p-1 sm:grid-cols-2">
-          {(
-            [
-              { value: "final", label: "Delivery done", hint: "Release what you spent, cancel the rest" },
-              { value: "advance", label: "Pay the booking", hint: `Up to ${formatUsd(advanceLeftCents)} now, the rest after delivery` },
-            ] as const
-          ).map((o) => {
-            const on = kind === o.value;
-            return (
-              <label key={o.value} className="relative cursor-pointer rounded-[7px] px-3 py-2.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/25">
-                {on && <motion.span layoutId="release-kind" className="absolute inset-0 rounded-[7px] bg-card shadow-[0_1px_0_rgba(15,30,61,0.08),0_6px_16px_-10px_rgba(15,30,61,0.4)]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
-                {/* Separate group name: after a failed submit React resets the form, and a booking payment must never be resent as a delivery release. */}
-                <input type="radio" name="kind-choice" value={o.value} checked={on} onChange={() => setKind(o.value)} className="sr-only" />
-                <span className="relative block text-sm text-ink">{o.label}</span>
-                <span className="relative block text-xs text-ink-muted">{o.hint}</span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-      <input type="hidden" name="kind" value={staged && advanceLeftCents > 0 ? kind : "final"} />
+      <input type="hidden" name="kind" value={kind} />
 
       <div>
         <label htmlFor="amount" className="text-sm font-medium text-ink">
@@ -107,7 +98,11 @@ export function ReleaseForm({
         <AnimatePresence mode="wait" initial={false}>
           {tooMuch ? (
             <motion.p key="over" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: [0, -5, 5, -3, 0] }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="text-[#a32d2d]">
-              {kind === "advance" ? `Up front you can take up to ${formatUsd(max)}. The rest is released after delivery.` : `Only ${formatUsd(max)} is held for this need.`}
+              {kind === "advance"
+                ? `Up front you can take up to ${formatUsd(max)}. The rest is released after delivery.`
+                : capByRule
+                  ? `You can release up to ${formatUsd(max)} - what you paid suppliers with PayPal, less what was already released.`
+                  : `Only ${formatUsd(max)} is held for this need.`}
             </motion.p>
           ) : amountCents ? (
             <motion.div key="ok" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>

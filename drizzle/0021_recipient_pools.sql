@@ -1,0 +1,1 @@
+ALTER TABLE "recipient_contacts" ADD COLUMN "is_demo" boolean DEFAULT false NOT NULL;

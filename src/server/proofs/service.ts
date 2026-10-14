@@ -1,4 +1,5 @@
 import "server-only";
+import { sharedNumbersForReviewer } from "./recipients";
 import { createHash } from "node:crypto";
 import { and, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import type { CharityContext, ReviewerContext } from "@/server/auth/access";
@@ -255,5 +256,12 @@ export async function listProofsForNeed(reviewer: ReviewerContext, needId: strin
   const [n] = await db.select({ charityId: needs.charityId }).from(needs).where(eq(needs.id, needId)).limit(1);
   if (!n || !(await reviewerMayActOn(reviewer, n.charityId))) return [];
   const rows = await db.select(VIEW_COLUMNS).from(proofs).where(eq(proofs.needId, needId)).orderBy(desc(proofs.createdAt));
-  return rows.map(toView);
+  const views = rows.map(toView);
+  // Reviewers (only) see how many recipient numbers other charities also listed.
+  const shared = await sharedNumbersForReviewer(needId);
+  if (shared && shared.shared > 0) {
+    const v = views.find((p) => p.id === shared.proofId);
+    if (v) v.reasons = [...v.reasons, `Reviewer note: ${shared.shared} of these numbers were also listed by another charity.`];
+  }
+  return views;
 }

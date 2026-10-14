@@ -63,7 +63,9 @@ export async function markLapsedHolds(now = new Date()): Promise<{ checked: numb
             amountCents: donations.amountCents,
             capturedCents: donations.capturedCents,
             status: donations.status,
-            unfinished: sql<number>`(select count(*) from ${captures} where ${captures.donationId} = ${donations.id} and ${captures.status} in ('pending', 'failed'))::int`,
+            // Table-qualified on purpose: in a one-table select Drizzle prints bare column names, and a
+            // bare "id" inside the subquery would mean captures.id - the count would always be 0.
+            unfinished: sql<number>`(select count(*) from ${captures} where ${captures}."donation_id" = ${donations}."id" and ${captures}."status" in ('pending', 'failed'))::int`,
           })
           .from(donations)
           .where(eq(donations.id, s.id))

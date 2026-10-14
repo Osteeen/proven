@@ -16,8 +16,18 @@ const capturedCents = sql<number>`coalesce(sum(${donations.capturedCents} - ${do
 // One donor = one private gift link: holds added to the same gift count once.
 const donorCount = sql<number>`count(distinct ${donations.donorAccessHash}) filter (where ${donations.status} <> 'pending_approval' and ${donations.status} <> 'failed')::int`;
 
+export class NeedLimitError extends Error {}
+
+/** Needs a charity may post in a day: plenty for real relief work, a stop on scripted posting. */
+export const MAX_NEEDS_PER_DAY = 20;
+
 /** Creates a need for the signed-in charity. The charity comes only from the session context. */
 export async function createNeed(ctx: CharityContext, input: NeedInput): Promise<string> {
+  const [{ today = 0 } = {}] = await getDb()
+    .select({ today: sql<number>`count(*)::int` })
+    .from(needs)
+    .where(and(eq(needs.charityId, ctx.charityId), sql`${needs.createdAt} > now() - interval '1 day'`));
+  if (today >= MAX_NEEDS_PER_DAY) throw new NeedLimitError(`You've posted ${MAX_NEEDS_PER_DAY} needs today. Try again tomorrow.`);
   const [row] = await getDb()
     .insert(needs)
     .values({

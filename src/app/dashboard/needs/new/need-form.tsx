@@ -6,12 +6,12 @@ import { DatePicker } from "@/components/motion/date-picker";
 import { MoneyInput } from "@/components/money-input";
 import { createNeedAction, type NeedFormState } from "./actions";
 
+// The PayPal supplier payment comes first and is always required; the rest are second checks.
 const PROOFS = [
-  { value: "receipt", label: "Receipt", hint: "Read by AI and matched to the need", independent: false },
-  { value: "supplier_confirmation", label: "Supplier confirms", hint: "We contact the supplier ourselves", independent: true },
-  { value: "recipient_confirmation", label: "Recipient confirms", hint: "One tap from the people helped", independent: true },
-  { value: "live_photo", label: "Live photo", hint: "Taken in the app, faces blurred", independent: false },
-  { value: "supplier_paypal_payment", label: "Supplier paid with PayPal", hint: "The strongest proof - we see the payment", independent: true },
+  { value: "supplier_paypal_payment", label: "Supplier paid with PayPal", hint: "Pay the supplier through Proven - PayPal's own record of the payment is the main proof" },
+  { value: "receipt", label: "Receipt", hint: "Read by AI and matched to the need" },
+  { value: "supplier_confirmation", label: "Supplier confirms", hint: "We ask the supplier at the email PayPal holds" },
+  { value: "recipient_confirmation", label: "Recipient confirms", hint: "We text a random sample of the people helped" },
 ];
 
 const field =
@@ -79,8 +79,8 @@ export function NeedForm({ minDate, maxDate, today }: { minDate: string; maxDate
 
       <fieldset>
         <legend className="text-sm font-medium text-ink">Proof you&apos;ll provide</legend>
-        <p className="mt-0.5 text-xs text-ink-muted">Choose at least two. One must come from the supplier or the people helped - money is released only when checks from different sources agree.</p>
-        <ProofPicker name="requiredProof" options={PROOFS} defaultValues={v?.requiredProof} />
+        <p className="mt-0.5 text-xs text-ink-muted">You buy through Proven and pay the supplier with PayPal. Add at least one second check - money is released only when both agree.</p>
+        <ProofPicker name="requiredProof" options={PROOFS} required="supplier_paypal_payment" defaultValues={v?.requiredProof} />
         <Err msg={e.requiredProof} id="proof-err" />
       </fieldset>
 

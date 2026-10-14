@@ -5,6 +5,7 @@ import { requireReviewer } from "@/server/auth/access";
 import { toCents } from "@/server/money";
 import { refundNeed, retryRefund } from "@/server/releases/refunds";
 import { approveRelease, cancelNeed, finishClosingNeed, rejectRelease, ReleaseError, retryRelease } from "@/server/releases/service";
+import { rejectSupplier, revokeSupplier, SupplierError, verifySupplier } from "@/server/suppliers/service";
 
 type Result = { error?: string };
 
@@ -91,4 +92,34 @@ export async function retryRefundAction(needId: string, batchId: string): Promis
   const r = await run(() => retryRefund(reviewer, batchId).then((s) => (s === "unfinished" ? "failed" : s)), "Couldn't retry the refund. Try again.");
   revalidatePath(`/review/needs/${needId}`);
   return r;
+}
+
+async function supplierRun(fn: () => Promise<void>, failMsg: string): Promise<Result> {
+  try {
+    await fn();
+    refresh();
+    return {};
+  } catch (e) {
+    if (e instanceof SupplierError) return { error: e.message };
+    console.error(failMsg, e instanceof Error ? e.constructor.name : e);
+    return { error: failMsg };
+  }
+}
+
+/** The reviewer confirmed the supplier is a real, independent business. Scope is checked in the service. */
+export async function verifySupplierAction(supplierId: string): Promise<Result> {
+  const reviewer = await requireReviewer();
+  return supplierRun(() => verifySupplier(reviewer, supplierId), "Couldn't verify the supplier. Try again.");
+}
+
+/** The reviewer couldn't confirm the supplier: it can't be paid and its payments don't count as proof. */
+export async function rejectSupplierAction(supplierId: string): Promise<Result> {
+  const reviewer = await requireReviewer();
+  return supplierRun(() => rejectSupplier(reviewer, supplierId), "Couldn't update the supplier. Try again.");
+}
+
+/** The reviewer withdraws a verified supplier: it can't be paid, and proof resting on it fails. */
+export async function revokeSupplierAction(supplierId: string): Promise<Result> {
+  const reviewer = await requireReviewer();
+  return supplierRun(() => revokeSupplier(reviewer, supplierId), "Couldn't revoke the supplier. Try again.");
 }

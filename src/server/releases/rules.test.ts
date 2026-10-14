@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceCapCents, allocate, reviewReason } from "./rules";
+import { advanceCapCents, allocate, finalReleaseBlock, finalReleaseRoomCents, proofChecked, reviewReason } from "./rules";
 
 const sum = (xs: { cents: number }[]) => xs.reduce((s, x) => s + x.cents, 0);
 
@@ -74,12 +74,72 @@ describe("reviewReason", () => {
   it("sends large releases to a person", () => {
     expect(reviewReason({ ...base, amountCents: 100001 })).toMatch(/threshold/);
   });
-  it("sends every delivery release to a person until proof checks are automated", () => {
+  it("sends a delivery release to a person unless its proof was checked", () => {
     expect(reviewReason({ ...base, kind: "final" })).toMatch(/checked by a person/);
+    expect(reviewReason({ ...base, kind: "final", proofChecked: true })).toBeNull();
+    // Checked proof never skips the other reasons.
+    expect(reviewReason({ ...base, kind: "final", proofChecked: true, amountCents: 100001 })).toMatch(/threshold/);
+  });
+  it("sends booking payments on needs bought through Proven to a person", () => {
+    expect(reviewReason({ ...base, requiresSupplierPayment: true })).toMatch(/Booking payment/);
   });
   it("lets routine advances through", () => {
     expect(reviewReason(base)).toBeNull();
     expect(reviewReason({ ...base, trustTier: "new", completedReleases: 1 })).toBeNull();
     expect(reviewReason({ ...base, amountCents: 100000 })).toBeNull();
+  });
+});
+
+describe("finalReleaseBlock", () => {
+  const ok = {
+    requiresSupplierPayment: true,
+    supplierPaidCents: 20000,
+    passedKinds: ["supplier_paypal_payment", "receipt"],
+    releasedCents: 0,
+    requiredSecondChecks: ["receipt"],
+    openIssues: 0,
+  };
+  it("needs a PayPal supplier payment first", () => {
+    expect(finalReleaseBlock({ ...ok, supplierPaidCents: 0 }, 100)).toMatch(/Pay the supplier/);
+  });
+  it("needs a second check", () => {
+    expect(finalReleaseBlock({ ...ok, passedKinds: ["supplier_paypal_payment"] }, 100)).toMatch(/second check/);
+  });
+  it("never releases more than was paid to suppliers, counting earlier releases", () => {
+    expect(finalReleaseBlock(ok, 20000)).toBeNull();
+    expect(finalReleaseBlock(ok, 20001)).toMatch(/up to \$200\.00/);
+    expect(finalReleaseBlock({ ...ok, releasedCents: 5000 }, 15001)).toMatch(/up to \$150\.00/);
+    expect(finalReleaseRoomCents({ ...ok, releasedCents: 25000 })).toBe(0);
+  });
+  it("leaves needs posted before the rule to a person", () => {
+    const legacy = { ...ok, requiresSupplierPayment: false, supplierPaidCents: 0, passedKinds: [] };
+    expect(finalReleaseBlock(legacy, 100)).toBeNull();
+    expect(proofChecked(legacy)).toBe(false);
+  });
+  it("counts proof as checked only when both parts pass", () => {
+    expect(proofChecked(ok)).toBe(true);
+    expect(proofChecked({ ...ok, passedKinds: ["supplier_paypal_payment"] })).toBe(false);
+  });
+  it("never skips review on the supplier's own word alone", () => {
+    const p = { ...ok, passedKinds: ["supplier_paypal_payment", "supplier_confirmation"], requiredSecondChecks: ["supplier_confirmation"] };
+    expect(finalReleaseBlock(p, 100)).toBeNull(); // it may still be released - by a person
+    expect(proofChecked(p)).toBe(false);
+    expect(proofChecked({ ...p, passedKinds: [...p.passedKinds, "receipt"], requiredSecondChecks: ["supplier_confirmation", "receipt"] })).toBe(true);
+  });
+  it("only counts second checks the need asked for", () => {
+    const p = { ...ok, passedKinds: ["supplier_paypal_payment", "supplier_confirmation"], requiredSecondChecks: ["recipient_confirmation"] };
+    expect(finalReleaseBlock(p, 100)).toMatch(/second check/);
+    expect(proofChecked(p)).toBe(false);
+  });
+  it("sends the release to a person when any proof is in doubt, even if others passed", () => {
+    // A recipient said no (needs_review) while a receipt passed.
+    const p = { ...ok, requiredSecondChecks: ["receipt", "recipient_confirmation"], openIssues: 1 };
+    expect(finalReleaseBlock(p, 100)).toBeNull();
+    expect(proofChecked(p)).toBe(false);
+  });
+  it("needs every promised check to pass before skipping review", () => {
+    const p = { ...ok, requiredSecondChecks: ["receipt", "recipient_confirmation"] };
+    expect(proofChecked(p)).toBe(false);
+    expect(proofChecked({ ...p, passedKinds: [...p.passedKinds, "recipient_confirmation"] })).toBe(true);
   });
 });

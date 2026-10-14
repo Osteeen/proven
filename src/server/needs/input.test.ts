@@ -34,7 +34,8 @@ describe("parseNeedInput", () => {
     [{ deadline: "2026-10-09" }, "deadline"],
     [{ deadline: "2026-11-07" }, "deadline"],
     [{ deadline: "soon" }, "deadline"],
-    [{ requiredProof: ["receipt"] }, "requiredProof"],
+    [{ requiredProof: [] }, "requiredProof"],
+    [{ requiredProof: ["supplier_paypal_payment"] }, "requiredProof"],
     [{ requiredProof: ["receipt", "made_up"] }, "requiredProof"],
     [{ fundingModel: "everything_now" }, "fundingModel"],
     [{ title: "x" }, "title"],
@@ -45,24 +46,28 @@ describe("parseNeedInput", () => {
     if (!r.ok) expect(r.errors).toHaveProperty(field);
   });
 
-  it("requires at least one independent proof", () => {
-    const r = parseNeedInput({ ...good, requiredProof: ["receipt", "live_photo"] }, opts);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.requiredProof).toMatch(/independent/);
+  it("always requires the PayPal supplier payment, first", () => {
+    const r = parseNeedInput({ ...good, requiredProof: ["receipt"] }, opts);
+    expect(r.ok && r.value.requiredProof).toEqual(["supplier_paypal_payment", "receipt"]);
   });
 
-  it.each([["supplier_confirmation"], ["supplier_paypal_payment"], ["recipient_confirmation"]])("accepts own evidence plus %s", (independent) => {
-    expect(parseNeedInput({ ...good, requiredProof: ["receipt", independent] }, opts).ok).toBe(true);
+  it("needs a second check next to it", () => {
+    const r = parseNeedInput({ ...good, requiredProof: ["supplier_paypal_payment"] }, opts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.requiredProof).toMatch(/second check/);
+  });
+
+  it("doesn't offer live photo yet - nothing could check it", () => {
+    expect(parseNeedInput({ ...good, requiredProof: ["live_photo"] }, opts).ok).toBe(false);
+  });
+
+  it.each([["receipt"], ["supplier_confirmation"], ["recipient_confirmation"]])("accepts %s as the second check", (second) => {
+    expect(parseNeedInput({ ...good, requiredProof: [second] }, opts).ok).toBe(true);
   });
 
   it("drops duplicate proof types", () => {
-    const r = parseNeedInput({ ...good, requiredProof: ["receipt", "receipt", "supplier_confirmation"] }, opts);
-    expect(r.ok && r.value.requiredProof).toEqual(["receipt", "supplier_confirmation"]);
-  });
-
-  it("does not count duplicates toward the two-proof minimum", () => {
-    const r = parseNeedInput({ ...good, requiredProof: ["receipt", "receipt"] }, opts);
-    expect(r.ok).toBe(false);
+    const r = parseNeedInput({ ...good, requiredProof: ["receipt", "receipt", "supplier_paypal_payment", "supplier_confirmation"] }, opts);
+    expect(r.ok && r.value.requiredProof).toEqual(["supplier_paypal_payment", "receipt", "supplier_confirmation"]);
   });
 });
 

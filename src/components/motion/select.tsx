@@ -17,6 +17,7 @@ export function Select({
   name,
   label,
   size = "md",
+  field = false,
 }: {
   options: SelectOption[];
   value: string;
@@ -24,6 +25,8 @@ export function Select({
   name?: string;
   label: string;
   size?: "sm" | "md";
+  /** Full width and shaped like the form's text fields; long labels are cut with "...". */
+  field?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(Math.max(0, options.findIndex((o) => o.value === value)));
@@ -73,10 +76,10 @@ export function Select({
     e.preventDefault();
   };
 
-  const pad = size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm";
+  const pad = field ? "w-full justify-between rounded-md px-3 py-2.5" : `rounded-full ${size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"}`;
 
   return (
-    <div ref={rootRef} className="relative inline-block">
+    <div ref={rootRef} className={field ? "relative block w-full" : "relative inline-block"}>
       {name && <input type="hidden" name={name} value={value} />}
       <button
         ref={buttonRef}
@@ -92,11 +95,11 @@ export function Select({
             openAt();
           }
         }}
-        className={`flex items-center gap-2 rounded-full border bg-card text-ink outline-none transition-[border-color,box-shadow] duration-(--duration-quick) focus-visible:shadow-[0_0_0_3px_rgba(15,30,61,0.12)] ${pad} ${
+        className={`flex items-center gap-2 border bg-card text-ink outline-none transition-[border-color,box-shadow] duration-(--duration-quick) focus-visible:shadow-[0_0_0_3px_rgba(15,30,61,0.12)] ${pad} ${
           open ? "border-ink" : "border-line hover:border-ink-muted"
         }`}
       >
-        <span className="whitespace-nowrap">{current.label}</span>
+        <span className={field ? "min-w-0 truncate text-left" : "whitespace-nowrap"}>{current.label}</span>
         <motion.svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-ink-muted" animate={{ rotate: open ? 180 : 0 }} aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </motion.svg>
@@ -129,7 +132,7 @@ export function Select({
                   aria-selected={selected}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => pick(i)}
-                  className={`relative flex cursor-pointer items-center justify-between gap-6 whitespace-nowrap rounded-[8px] ${size === "sm" ? "px-3 py-1.5 text-xs" : "px-3 py-2 text-sm"} text-ink`}
+                  className={`relative flex cursor-pointer items-center justify-between gap-6 ${field ? "" : "whitespace-nowrap"} rounded-[8px] ${size === "sm" ? "px-3 py-1.5 text-xs" : "px-3 py-2 text-sm"} text-ink`}
                 >
                   {i === active && <motion.span layoutId={`${id}-hl`} className="absolute inset-0 rounded-[8px] bg-[#efece4]" transition={{ type: "spring", stiffness: 600, damping: 40 }} />}
                   <span className="relative">{o.label}</span>

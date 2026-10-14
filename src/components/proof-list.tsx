@@ -64,7 +64,7 @@ export function ProofList({ proofs, showImages = true }: { proofs: ProofView[]; 
             )}
             {p.concerns.length > 0 && <p className="mt-2 text-xs text-ink-muted">Noted by the AI: {p.concerns.join("; ")}</p>}
 
-            {showImages && (
+            {showImages && p.kind === "receipt" && (
               <a
                 href={`/api/proofs/${p.id}/image`}
                 target="_blank"

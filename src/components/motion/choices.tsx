@@ -27,66 +27,47 @@ function Tick({ on }: { on: boolean }) {
   );
 }
 
-type ProofOption = Option & { independent: boolean };
+type ProofOption = Option;
 
 /**
- * Proof types as cards. Release needs two proofs, at least one of them from
- * someone other than the charity. Picking a second piece of the charity's own
- * evidence (receipt + photo) with nothing independent is refused on the spot.
- * Real checkboxes underneath, so the form and keyboard work as usual.
+ * Proof choices for a new need, as cards. `required` (the PayPal supplier
+ * payment) is always on and can't be unticked; the charity adds at least one
+ * second check. Real checkboxes underneath, so the form and keyboard work as usual.
  */
-export function ProofPicker({ name, options, defaultValues = [] }: { name: string; options: ProofOption[]; defaultValues?: string[] }) {
-  const [picked, setPicked] = useState<string[]>(defaultValues);
-  const [blocked, setBlocked] = useState<{ value: string; n: number } | null>(null);
-  const isIndependent = (v: string) => options.find((o) => o.value === v)?.independent ?? false;
+export function ProofPicker({ name, options, required, defaultValues = [] }: { name: string; options: ProofOption[]; required: string; defaultValues?: string[] }) {
+  const [picked, setPicked] = useState<string[]>([required, ...defaultValues.filter((v) => v !== required)]);
 
   const toggle = (v: string) => {
-    if (picked.includes(v)) {
-      setPicked((p) => p.filter((x) => x !== v));
-      return;
-    }
-    const next = [...picked, v];
-    const ownOnly = next.length >= 2 && !next.some(isIndependent);
-    if (ownOnly) {
-      setBlocked((b) => ({ value: v, n: (b?.n ?? 0) + 1 }));
-      return;
-    }
-    setBlocked(null);
-    setPicked(next);
+    if (v === required) return;
+    setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
   };
 
-  const independent = picked.filter(isIndependent).length;
-  const ready = picked.length >= 2 && independent >= 1;
-  const status = blocked
-    ? "Receipt and photo both come from you - first pick a supplier or recipient confirmation"
-    : ready
-      ? `${picked.length} checks - money can be released when they agree`
-      : picked.length >= 2
-        ? "Add a supplier or recipient confirmation"
-        : `${2 - picked.length} more to go`;
+  const seconds = picked.filter((v) => v !== required).length;
+  const ready = seconds >= 1;
+  const status = ready ? `PayPal supplier payment + ${seconds} ${seconds === 1 ? "check" : "checks"} - money is released when they agree` : "Pick at least one second check";
 
   return (
     <div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {options.map((o) => {
           const on = picked.includes(o.value);
-          const shake = blocked?.value === o.value;
+          const locked = o.value === required;
           return (
             <motion.label
               key={o.value}
-              whileTap={{ scale: 0.985 }}
-              // The last keyframe alternates by a hair so every blocked click shakes again.
-              animate={shake ? { x: [0, -6, 6, -4, 4, (blocked?.n ?? 0) % 2 ? 0 : 0.01] } : { x: 0 }}
-              transition={{ duration: 0.35 }}
-              className={`flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 transition-colors duration-(--duration-quick) has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/25 ${
-                on ? "border-ink bg-[#eef1f7]" : shake ? "border-[#e0a3a3] bg-card" : "border-line bg-card hover:border-ink-muted"
+              whileTap={locked ? undefined : { scale: 0.985 }}
+              className={`flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors duration-(--duration-quick) has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ink/25 ${
+                locked ? "cursor-default border-ink bg-[#eef1f7] sm:col-span-2" : on ? "cursor-pointer border-ink bg-[#eef1f7]" : "cursor-pointer border-line bg-card hover:border-ink-muted"
               }`}
             >
               {/* No name: React resets a form after a submit, which would untick these while the picker still shows them ticked. The hidden inputs below carry the value. */}
-              <input type="checkbox" value={o.value} checked={on} onChange={() => toggle(o.value)} className="sr-only" />
+              <input type="checkbox" value={o.value} checked={on} disabled={locked} onChange={() => toggle(o.value)} className="sr-only" />
               <span className="mt-0.5"><Tick on={on} /></span>
               <span>
-                <span className="block text-sm text-ink">{o.label}</span>
+                <span className="block text-sm text-ink">
+                  {o.label}
+                  {locked && <span className="ml-2 text-xs text-ink-muted">Always required</span>}
+                </span>
                 <span className="block text-xs text-ink-muted">{o.hint}</span>
               </span>
             </motion.label>
@@ -98,7 +79,7 @@ export function ProofPicker({ name, options, defaultValues = [] }: { name: strin
       ))}
       <div className="mt-3 flex items-center gap-3" aria-live="polite">
         <div className="flex gap-1" aria-hidden="true">
-          {[picked.length >= 1, ready].map((lit, i) => (
+          {[true, ready].map((lit, i) => (
             <motion.span
               key={i}
               className="h-1.5 w-8 rounded-full"
@@ -110,12 +91,12 @@ export function ProofPicker({ name, options, defaultValues = [] }: { name: strin
         </div>
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
-            key={`${status}-${blocked?.n ?? 0}`}
+            key={status}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18 }}
-            className={`text-xs ${blocked ? "text-[#a32d2d]" : ready ? "text-proven-text" : "text-ink-muted"}`}
+            className={`text-xs ${ready ? "text-proven-text" : "text-ink-muted"}`}
           >
             {status}
           </motion.span>

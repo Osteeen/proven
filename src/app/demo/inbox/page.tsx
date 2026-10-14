@@ -36,21 +36,22 @@ const PER_PAGE = 10;
 export default async function DemoInboxPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   if (!demoLoginEnabled()) notFound();
   const db = getDb();
-  // Only mail about the seeded demo charity: the inbox is public in demo mode, and mail carries private gift links.
+  // Only mail about the seeded demo charity (a donor's gift, or a supplier it invited): the inbox is
+  // public in demo mode, and mail carries private gift links.
   const demoOnly = eq(charities.isDemo, true);
   const [{ n: total } = { n: 0 }] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(messages)
-    .innerJoin(donations, eq(donations.id, messages.donationId))
-    .innerJoin(charities, eq(charities.id, donations.charityId))
+    .leftJoin(donations, eq(donations.id, messages.donationId))
+    .innerJoin(charities, eq(charities.id, sql`coalesce(${messages.charityId}, ${donations.charityId})`))
     .where(demoOnly);
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const page = Math.min(Math.max(1, Math.floor(Number((await searchParams).page) || 1)), pages);
   const mail = await db
     .select({ message: messages })
     .from(messages)
-    .innerJoin(donations, eq(donations.id, messages.donationId))
-    .innerJoin(charities, eq(charities.id, donations.charityId))
+    .leftJoin(donations, eq(donations.id, messages.donationId))
+    .innerJoin(charities, eq(charities.id, sql`coalesce(${messages.charityId}, ${donations.charityId})`))
     .where(demoOnly)
     .orderBy(desc(messages.createdAt))
     .limit(PER_PAGE)
