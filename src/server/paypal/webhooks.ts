@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { captures, donations, ledgerEntries, refunds, webhookEvents } from "@/server/db/schema";
 import { notifyDonorsOfRefunds, recordRefundSuccess } from "@/server/releases/refunds";
@@ -99,7 +99,7 @@ export async function handleVerifiedEvent(event: WebhookEvent): Promise<string> 
             .from(captures)
             .innerJoin(donations, eq(donations.id, captures.donationId))
             // Every detail must agree: our row, PayPal's authorization, and the amount.
-            .where(and(eq(captures.id, rowId), eq(donations.paypalAuthorizationId, authId), eq(captures.amountCents, amount)))
+            .where(and(eq(captures.id, rowId), or(eq(donations.paypalAuthorizationId, authId), eq(donations.captureAuthorizationId, authId)), eq(captures.amountCents, amount)))
             .limit(1)
         : [];
       outcome = row && (await recordCaptureSuccess(row, r.id, "paypal_webhook")) ? "repaired: capture recorded" : "unmatched capture - needs review";
@@ -129,7 +129,7 @@ export async function handleVerifiedEvent(event: WebhookEvent): Promise<string> 
       const rows = await tx
         .update(donations)
         .set({ status: sql`case when ${donations.capturedCents} > 0 then 'captured'::donation_status else 'voided'::donation_status end` })
-        .where(and(eq(donations.paypalAuthorizationId, r.id!), inArray(donations.status, ["authorized", "partially_captured"])))
+        .where(and(or(eq(donations.paypalAuthorizationId, r.id!), eq(donations.captureAuthorizationId, r.id!)), inArray(donations.status, ["authorized", "partially_captured"])))
         .returning({ id: donations.id, charityId: donations.charityId, amountCents: donations.amountCents, capturedCents: donations.capturedCents });
       for (const d of rows) {
         await tx.insert(ledgerEntries).values({
@@ -156,7 +156,8 @@ async function isOurs(event: WebhookEvent): Promise<boolean> {
   const r = event.resource ?? {};
   const authId = r.supplementary_data?.related_ids?.authorization_id;
   const byAuth = async (id: string | undefined) =>
-    !!id && (await db.select({ id: donations.id }).from(donations).where(eq(donations.paypalAuthorizationId, id)).limit(1)).length > 0;
+    !!id &&
+    (await db.select({ id: donations.id }).from(donations).where(or(eq(donations.paypalAuthorizationId, id), eq(donations.captureAuthorizationId, id))).limit(1)).length > 0;
   const byCapture = async (id: string | undefined) =>
     !!id && (await db.select({ id: captures.id }).from(captures).where(eq(captures.paypalCaptureId, id)).limit(1)).length > 0;
 
@@ -165,8 +166,14 @@ async function isOurs(event: WebhookEvent): Promise<boolean> {
       return byAuth(r.id);
     case "PAYMENT.CAPTURE.COMPLETED":
     case "PAYMENT.CAPTURE.DENIED":
-    case "PAYMENT.CAPTURE.REVERSED":
-      return (await byCapture(r.id)) || (await byAuth(authId));
+    case "PAYMENT.CAPTURE.REVERSED": {
+      // We tag every capture with our capture row ID: the sturdiest match, whichever
+      // authorization ID PayPal reports.
+      const ourTag = r.invoice_id && UUID.test(r.invoice_id)
+        ? (await db.select({ id: captures.id }).from(captures).where(eq(captures.id, r.invoice_id)).limit(1)).length > 0
+        : false;
+      return ourTag || (await byCapture(r.id)) || (await byAuth(authId));
+    }
     case "PAYMENT.CAPTURE.REFUNDED": {
       // The resource is the refund; its "up" link points at the capture it came from.
       const up = r.links?.find((l) => l.rel === "up")?.href ?? "";

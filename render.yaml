@@ -38,6 +38,9 @@ projects:
                   property: connectionString
               - key: AUTH_SECRET
                 generateValue: true
+              # Copy this generated value into the GitHub repo secret JOB_SECRET (daily jobs).
+              - key: JOB_SECRET
+                generateValue: true
               # The service's https URL, e.g. https://proven.onrender.com - set after the first deploy.
               - key: AUTH_URL
                 sync: false

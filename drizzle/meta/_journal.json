@@ -85,6 +85,20 @@
       "when": 1791801000762,
       "tag": "0011_refund_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791973187323,
+      "tag": "0012_reauthorize",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791973874731,
+      "tag": "0013_renewal_attempt",
+      "breakpoints": true
     }
   ]
 }

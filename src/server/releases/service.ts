@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { reviewerMayActOn, type CharityContext, type ReviewerContext } from "@/server/auth/access";
 import { getDb } from "@/server/db/client";
 import { captures, charities, donations, ledgerEntries, memberships, needs, releases } from "@/server/db/schema";
@@ -8,12 +8,15 @@ import { cents, formatUsd } from "@/server/money";
 import { PayPalError } from "@/server/paypal/client";
 import { captureAuthorization, getOrderCaptures, voidAuthorization } from "@/server/paypal/orders";
 import { emailDonorsAfterSettlement } from "./emails";
+import { authorizationForCapture } from "./holds";
 import { advanceCapCents, allocate, reviewReason } from "./rules";
 
 export class ReleaseError extends Error {}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LIVE_HOLDS = ["authorized", "partially_captured"] as const;
+/** A release approved or executing for this long has stopped (crash or timeout) and may be retried. */
+const STUCK_AFTER_MS = 10 * 60 * 1000;
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
@@ -221,13 +224,22 @@ export async function retryRelease(reviewer: ReviewerContext, releaseId: string)
 export async function executeRelease(releaseId: string, opts: { allowStuck?: boolean } = {}): Promise<"completed" | "failed"> {
   if (!UUID.test(releaseId)) throw new ReleaseError("Release not found.");
   const db = getDb();
-  const runnable = opts.allowStuck ? (["approved", "failed", "executing"] as const) : (["approved", "failed"] as const);
+  // A stuck release (approved or executing for 10+ minutes) can be picked up again;
+  // one that is executing right now never runs twice in parallel.
+  const stuckBefore = new Date(Date.now() - STUCK_AFTER_MS);
 
   const plan = await db.transaction(async (tx) => {
     const [rel] = await tx
       .select()
       .from(releases)
-      .where(and(eq(releases.id, releaseId), inArray(releases.status, [...runnable])))
+      .where(
+        and(
+          eq(releases.id, releaseId),
+          opts.allowStuck
+            ? or(inArray(releases.status, ["approved", "failed"]), and(eq(releases.status, "executing"), lt(releases.updatedAt, stuckBefore)))
+            : inArray(releases.status, ["approved", "failed"]),
+        ),
+      )
       .for("update");
     if (!rel) throw new ReleaseError("This release can't run right now.");
     const need = await lockNeed(tx, rel.needId);
@@ -337,8 +349,10 @@ async function captureOnce(c: PlannedCapture & { charityId: string; releaseId: s
       // Already captured, or still processing on PayPal: never capture again.
       if (view.state === "completed" || view.state === "pending") return settle(view);
     }
-    if (!c.authorizationId) throw new Error("donation has no authorization");
-    const res = await captureAuthorization(c.authorizationId, cents(c.amountCents), c.final, c.requestId, c.id);
+    // After the honor period an uncharged hold is renewed first; captures use the current ID.
+    const authId = await authorizationForCapture(c.donationId);
+    if (!authId) throw new Error("donation has no authorization");
+    const res = await captureAuthorization(authId, cents(c.amountCents), c.final, c.requestId, c.id);
     if (res.status === "COMPLETED") return settle({ state: "completed", paypalCaptureId: res.captureId });
     if (res.status === "PENDING") return false; // Finished later by the webhook or a retry's check.
     await markCaptureFailed(c, `PayPal capture status ${res.status}`);

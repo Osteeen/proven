@@ -5,6 +5,7 @@ import { and, asc, eq, gt, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { charities, donations, ledgerEntries, needs } from "@/server/db/schema";
 import { cents, formatUsd, toCents, toPayPalValue } from "@/server/money";
+import { HONOR_PERIOD_MS } from "@/server/releases/holds";
 import { PayPalError } from "@/server/paypal/client";
 import { authorizeOrder, createHoldOrder, voidAuthorization } from "@/server/paypal/orders";
 import { hashDonorKey, isWellFormedDonorKey, newDonorKey } from "./access";
@@ -12,7 +13,6 @@ import { giftAddedEmail, giftHeldEmail } from "./emails";
 import { sendMail } from "@/server/mail/mailer";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const HONOR_PERIOD_MS = 3 * 24 * 60 * 60 * 1000;
 export const MIN_DONATION_CENTS = 100;
 // A gift waiting on PayPal approval reserves its amount for this long.
 const RESERVATION_MINUTES = 15;

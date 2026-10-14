@@ -52,6 +52,9 @@ export const donationStatus = pgEnum("donation_status", [
 ]);
 export const captureStatus = pgEnum("capture_status", ["pending", "completed", "declined", "failed"]);
 export const captureReason = pgEnum("capture_reason", ["booking_confirmed", "delivery_proven"]);
+// Money totals count only "captured", "voided", "expired" and "refunded".
+// "authorized", "reauthorized", "capture_requested" and "capture_failed" record
+// steps that move no money - never add them into totals.
 export const ledgerEvent = pgEnum("ledger_event", [
   "authorized",
   "reauthorized",
@@ -138,8 +141,17 @@ export const donations = pgTable(
     // Idempotency key for creating the PayPal order (PayPal-Request-Id).
     createRequestId: uuid("create_request_id").notNull().unique(),
     paypalOrderId: text("paypal_order_id").unique(),
-    // Current authorization; it changes on reauthorize (history is in the ledger).
+    // The ORIGINAL authorization. Voids always go here: after a reauthorize, voiding
+    // the new ID is refused, voiding the original cancels both (sandbox test 5).
     paypalAuthorizationId: text("paypal_authorization_id").unique(),
+    // The authorization captures use. Set when Proven reauthorizes after the 3-day
+    // honor period; null means "same as the original". History is in the ledger.
+    captureAuthorizationId: text("capture_authorization_id").unique(),
+    reauthorizeCount: integer("reauthorize_count").notNull().default(0),
+    // A renewal is saved here BEFORE PayPal is called and reused on every retry,
+    // so a lost reply can never turn into a second renewal.
+    renewalRequestId: text("renewal_request_id"),
+    renewalAmountCents: integer("renewal_amount_cents"),
     paypalPayerId: text("paypal_payer_id"),
     // Donors have no accounts: their gift page is reached by a private link.
     // Only a SHA-256 hash of the link key is stored. Top-ups reuse the same key,

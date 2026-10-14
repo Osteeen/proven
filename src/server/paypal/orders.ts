@@ -118,6 +118,21 @@ export async function refundCapture(paypalCaptureId: string, amountCents: Cents,
   return { refundId: res.id, status: res.status };
 }
 
+/**
+ * Renews a hold after PayPal's 3-day honor period, so the funds are guaranteed
+ * again for 3 days. Returns a NEW authorization ID for captures; the hold's
+ * 29-day expiry does not move (sandbox test 5). No Auth-Assertion needed.
+ * Idempotent through requestId.
+ */
+export async function reauthorizeAuthorization(originalAuthorizationId: string, amountCents: Cents, requestId: string) {
+  const res = await paypalRequest<{ id: string; status: string; create_time?: string; expiration_time?: string }>(
+    "POST",
+    `/v2/payments/authorizations/${encodeURIComponent(originalAuthorizationId)}/reauthorize`,
+    { requestId, body: { amount: { currency_code: "USD", value: toPayPalValue(amountCents) } } },
+  );
+  return { authorizationId: res.id, status: res.status, createTime: res.create_time ? new Date(res.create_time) : new Date() };
+}
+
 /** Cancels a hold. Multiparty voids must be sent on the charity's behalf (verified in sandbox). */
 export async function voidAuthorization(authorizationId: string, charityMerchantId: string, requestId: string): Promise<void> {
   await paypalRequest("POST", `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/void`, {

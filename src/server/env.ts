@@ -16,8 +16,34 @@ export type Env = z.infer<typeof schema>;
 
 let cached: Env | undefined;
 
+// Settings pasted into a dashboard often carry a stray space or line break.
+// Trimmed once, in place, so every reader of process.env sees the clean value.
+const TRIMMED = [
+  "PAYPAL_ENV",
+  "PAYPAL_CLIENT_ID",
+  "PAYPAL_CLIENT_SECRET",
+  "PAYPAL_PARTNER_MERCHANT_ID",
+  "PAYPAL_PARTNER_ATTRIBUTION_ID",
+  "PAYPAL_WEBHOOK_ID",
+  "DATABASE_URL",
+  "AUTH_SECRET",
+  "AUTH_URL",
+  "DEMO_LOGIN",
+  "JOB_SECRET",
+  "DEMO_CHARITY_TRACKING_ID",
+  "DEMO_CHARITY_MERCHANT_ID",
+] as const;
+
+export function trimEnv(): void {
+  for (const key of TRIMMED) {
+    const v = process.env[key];
+    if (typeof v === "string" && v !== v.trim()) process.env[key] = v.trim();
+  }
+}
+
 export function getEnv(): Env {
   if (cached) return cached;
+  trimEnv();
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     // Name the keys only - never echo values.
@@ -36,6 +62,8 @@ const startupSchema = z
     AUTH_SECRET: z.string().min(32),
     AUTH_URL: z.string().url(),
     DEMO_LOGIN: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).optional()),
+    // Shared with the GitHub Actions schedule that calls /api/jobs/daily.
+    JOB_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
     PAYPAL_WEBHOOK_ID: z.preprocess(emptyToUndefined, z.string().optional()),
   })
   .refine((e) => process.env.NODE_ENV !== "production" || e.AUTH_URL.startsWith("https://"), {
@@ -44,6 +72,7 @@ const startupSchema = z
   });
 
 export function checkStartupEnv(): void {
+  trimEnv();
   getEnv();
   const parsed = startupSchema.safeParse(process.env);
   if (!parsed.success) {
