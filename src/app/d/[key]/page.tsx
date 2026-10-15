@@ -15,7 +15,7 @@ import { startTopUpAction } from "../../needs/[id]/actions";
 import { DonateForm } from "../../needs/[id]/donate-form";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Your donation - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your donation", robots: { index: false, follow: false } };
 
 type Stage = 0 | 1 | 2;
 const VIEW: Record<string, { headline: string; tone: "held" | "proven" | "void" | "review" | "neutral"; pill: string; stage: Stage; outcome: "proven" | "void" | "open" }> = {

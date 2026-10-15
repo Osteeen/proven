@@ -4,7 +4,7 @@ import { getRecipientQuestion } from "@/server/proofs/recipients";
 import { recipientAnswerAction } from "./actions";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Did you receive help? - Proven", robots: { index: false, follow: false }, referrer: "no-referrer" };
+export const metadata: Metadata = { title: "Did you receive help?", robots: { index: false, follow: false }, referrer: "no-referrer" };
 
 /**
  * The one-tap question texted to a randomly picked recipient. Kept short and

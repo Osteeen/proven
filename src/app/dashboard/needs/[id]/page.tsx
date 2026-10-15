@@ -25,7 +25,7 @@ import { ReleaseForm } from "./release-form";
 import { CheckPaymentButton, SupplierPay } from "./supplier-pay";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Manage need - Proven" };
+export const metadata: Metadata = { title: "Manage need" };
 
 const RELEASE_STATUS: Record<string, { tone: "held" | "proven" | "void" | "review" | "neutral"; label: string }> = {
   pending_review: { tone: "review", label: "Waiting for review" },

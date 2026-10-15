@@ -5,7 +5,7 @@ import { getConfirmation } from "@/server/suppliers/confirmations";
 import { answerAction } from "./actions";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Confirm a delivery - Proven", robots: { index: false, follow: false }, referrer: "no-referrer" };
+export const metadata: Metadata = { title: "Confirm a delivery", robots: { index: false, follow: false }, referrer: "no-referrer" };
 
 /**
  * A supplier's one-click answer to "did the charity receive what it paid you

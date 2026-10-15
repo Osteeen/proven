@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BackLink, Money, NeedStatus, SiteHeader, formatDate } from "@/components/ui";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
@@ -14,6 +15,20 @@ import { getPriceCheck } from "@/server/prices/check";
 import { MIN_COMPARABLES_FOR_DONORS } from "@/server/prices/price-rules";
 
 export const dynamic = "force-dynamic";
+
+/** What a shared link to this need says: the need itself, who asks, how much and by when. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const need = await getPublicNeed((await params).id);
+  if (!need) return { title: "Need not found", robots: { index: false, follow: false } };
+  const by = need.deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const description = `${need.charityName} needs ${formatUsd(need.amountCents).replace(/\.00$/, "")} by ${by}. Give with PayPal - you're only charged when delivery is proven.`;
+  return {
+    title: need.title,
+    description,
+    openGraph: { type: "article", title: need.title, description },
+    twitter: { card: "summary_large_image", title: need.title, description },
+  };
+}
 
 export default async function NeedPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cancelled?: string }> }) {
   const [{ id }, { cancelled }] = await Promise.all([params, searchParams]);

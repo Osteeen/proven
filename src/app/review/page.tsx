@@ -14,7 +14,7 @@ import { QueueGrid } from "./queue-grid";
 import { getPriceCheck } from "@/server/prices/check";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Review queue - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Review queue", robots: { index: false, follow: false } };
 
 // Read once per request on the server, to tell a stopped release from a running one.
 const requestTime = () => new Date();

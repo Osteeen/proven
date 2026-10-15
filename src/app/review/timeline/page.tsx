@@ -7,7 +7,7 @@ import { reviewerCharityScope } from "@/server/auth/scope";
 import { timelineData } from "@/server/releases/timeline";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Timeline - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Timeline", robots: { index: false, follow: false } };
 
 // Read once per request on the server.
 const requestTime = () => new Date().toISOString();

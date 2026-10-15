@@ -4,7 +4,7 @@ import { allow } from "@/server/rate-limit";
 import { refreshSupplier } from "@/server/suppliers/service";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "PayPal connected - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "PayPal connected", robots: { index: false, follow: false } };
 
 /**
  * Where PayPal sends a supplier after it connects. Suppliers have no Proven

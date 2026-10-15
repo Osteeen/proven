@@ -9,9 +9,22 @@ const fraunces = Fraunces({ subsets: ["latin"], weight: ["500"], variable: "--fo
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-jetbrains-mono", display: "swap" });
 
+const DESCRIPTION = "Give to disaster relief with PayPal. Your gift is held, not taken, and you're only charged for what the charity proves it delivered.";
+
 export const metadata: Metadata = {
-  title: "Proven",
-  description: "Give to disaster relief. You are only charged when delivery is proven.",
+  // Link previews need absolute image URLs: the site's own address (127.0.0.1 in development).
+  metadataBase: new URL(process.env.AUTH_URL ?? "http://127.0.0.1:3000"),
+  title: { default: "Proven - only charged when delivery is proven", template: "%s - Proven" },
+  description: DESCRIPTION,
+  applicationName: "Proven",
+  openGraph: {
+    type: "website",
+    siteName: "Proven",
+    locale: "en_US",
+    title: "Proven - only charged when delivery is proven",
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: "Proven - only charged when delivery is proven", description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

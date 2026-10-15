@@ -10,7 +10,7 @@ import { getDb } from "@/server/db/client";
 import { charities, donations, messages } from "@/server/db/schema";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Messages - Proven demo", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Messages (demo)", robots: { index: false, follow: false } };
 
 // Who each message is for. In real use each person gets theirs by email or text.
 const AUDIENCES = {

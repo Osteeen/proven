@@ -11,7 +11,7 @@ import { notProvenAction, retryRefundAction } from "../../actions";
 import { RefundForm } from "./refund-form";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Refund - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Refund", robots: { index: false, follow: false } };
 
 // Read once per request on the server.
 const requestTime = () => Date.now();

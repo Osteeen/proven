@@ -6,7 +6,7 @@ import { listLedger } from "@/server/releases/ledger";
 import { LedgerGrid } from "./ledger-grid";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Ledger - Proven", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Ledger", robots: { index: false, follow: false } };
 
 /** Every movement of donors' money, for reviewers and auditors. */
 export default async function LedgerPage() {
