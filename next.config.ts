@@ -12,11 +12,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Receipt photos are downscaled in the browser first; this leaves room for a 5 MB original.
-  experimental: {
-    serverActions: { bodySizeLimit: "6mb" },
-    // Render's build box allows 2 CPUs but shows the host's cores; one worker per core ran out of 8 GB.
-    cpus: 2,
-  },
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
