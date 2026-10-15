@@ -14,12 +14,7 @@ export function NeedsTimeline({ needs, holds, now }: { needs: TimelineNeed[]; ho
   if (needs.length === 0) return <p className="rounded-[10px] border border-dashed border-line px-4 py-6 text-sm text-ink-muted">No live needs right now.</p>;
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <Key color="#b26b00">Held, not charged</Key>
-        <Key color="#1f7a4d">Partly charged</Key>
-        <Key color="#a32d2d">Lapses within 3 days</Key>
-        <Key color="#1d4ed8">Delivery deadline</Key>
-      </div>
+      <TimelineLegend />
       <div className="proven-timeline overflow-hidden rounded-[10px] border border-line bg-card">
         <Inner needs={needs} holds={holds} now={now} />
       </div>
@@ -34,5 +29,17 @@ function Key({ color, children }: { color: string; children: React.ReactNode }) 
       <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />
       {children}
     </span>
+  );
+}
+
+/** What the bar colours and the blue band mean. */
+export function TimelineLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+      <Key color="#b26b00">Held, not charged</Key>
+      <Key color="#1f7a4d">Partly charged</Key>
+      <Key color="#a32d2d">Lapses within 3 days</Key>
+      <Key color="#1d4ed8">Delivery deadline</Key>
+    </div>
   );
 }

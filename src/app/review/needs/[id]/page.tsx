@@ -28,7 +28,7 @@ export default async function ReviewNeedPage({ params }: { params: Promise<{ id:
 
   return (
     <>
-      <ReviewerHeader signOut={<SignOutButton />} />
+      <ReviewerHeader signOut={<SignOutButton />} current="queue" />
       {reviewer.isDemo && <DemoBanner />}
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
         <BackLink href="/review">Back to review queue</BackLink>

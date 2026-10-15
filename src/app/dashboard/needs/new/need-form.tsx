@@ -52,7 +52,7 @@ export function NeedForm({ minDate, maxDate, today }: { minDate: string; maxDate
           name="description"
           rows={4}
           defaultValue={v?.description}
-          placeholder="Wool blankets for the 50 families sleeping at the school gym after the flood."
+          placeholder="Fleece blankets for the 50 families sleeping at the school gym after the flood."
           className={field}
           aria-invalid={!!e.description}
           aria-describedby="description-err"

@@ -1,7 +1,7 @@
 [
   {
-    "title": "Blankets for 60 families at the Riverbend school shelter",
-    "description": "60 wool blankets, one for each family sleeping on the school gym floor since the river flooded their homes. Nights are dropping below 10C. Bought from Valley Supply Co. and handed out at the shelter.",
+    "title": "Fleece blankets for 60 families at the Riverbend school shelter",
+    "description": "60 fleece blankets, one for each family sleeping on the school gym floor since the river flooded their homes. Nights are dropping below 10C. Bought from Valley Supply Co. and handed out at the shelter.",
     "amountCents": 120000,
     "days": 14,
     "requiredProof": [
@@ -11,14 +11,24 @@
     ]
   },
   {
-    "title": "Three days of bottled water for the Eastside evacuation centre",
-    "description": "The water main to the Eastside evacuation centre is broken. 400 people need drinking water for three days until it is repaired: 50 cases of bottled water (24 x 500ml bottles each), handed out at the door.",
-    "amountCents": 85000,
+    "title": "Tarps to cover 40 storm-damaged roofs",
+    "description": "40 heavy-duty waterproof tarps (10 x 12 ft) to cover roofs torn open by the storm until repairs can start, so families can stay in their homes. Bought from Valley Supply Co. and fitted by volunteers.",
+    "amountCents": 120000,
     "days": 10,
     "requiredProof": [
       "supplier_paypal_payment",
       "receipt",
       "recipient_confirmation"
+    ]
+  },
+  {
+    "title": "Sleeping mats for the Eastside evacuation centre",
+    "description": "10 foam sleeping mats for older evacuees sleeping on the concrete floor of the Eastside evacuation centre. Bought from Valley Supply Co. and handed out at the centre.",
+    "amountCents": 95000,
+    "days": 12,
+    "requiredProof": [
+      "supplier_paypal_payment",
+      "receipt"
     ]
   },
   {
@@ -30,16 +40,6 @@
       "supplier_paypal_payment",
       "supplier_confirmation",
       "recipient_confirmation"
-    ]
-  },
-  {
-    "title": "Two weeks of baby formula for 25 families",
-    "description": "100 cans of infant formula (about 800g each) for 25 families with babies under one year old at the Riverbend shelter - four cans per family for two weeks. Shops nearby are closed, so it is bought in bulk.",
-    "amountCents": 64000,
-    "days": 12,
-    "requiredProof": [
-      "supplier_paypal_payment",
-      "receipt"
     ]
   }
 ]

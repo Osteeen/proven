@@ -14,7 +14,7 @@ export default async function LedgerPage() {
   const rows = await listLedger(reviewer);
   return (
     <>
-      <ReviewerHeader signOut={<SignOutButton />} />
+      <ReviewerHeader signOut={<SignOutButton />} current="ledger" />
       {reviewer.isDemo && <DemoBanner />}
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6">
         <BackLink href="/review">Back to review queue</BackLink>

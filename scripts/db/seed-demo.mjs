@@ -83,11 +83,26 @@ try {
       [charityId, t.title],
     );
     if (live.rowCount) continue;
-    await client.query(
+    const posted = await client.query(
       `insert into needs (charity_id, title, description, amount_cents, deadline, funding_model, required_proof, status, demo_seed)
        values ($1, $2, $3, $4, date_trunc('day', now() + make_interval(days => $5)) + interval '23 hours 59 minutes 59 seconds',
-               'reimbursement', $6::proof_type[], 'open', true)`,
+               'reimbursement', $6::proof_type[], 'open', true)
+       returning id`,
       [charityId, t.title, t.description, t.amountCents, t.days, t.requiredProof],
+    );
+    // A re-posted copy keeps the last price result for the same template (same words and price),
+    // so the demo shows the same verdict every time instead of a fresh, possibly different, search.
+    await client.query(
+      `insert into need_price_checks (need_id, status, item, quantity, unit_cents, market_median_cents, market_low_cents,
+              market_high_cents, comparable_count, verdict, listings, attempts, checked_at)
+       select $1, p.status, p.item, p.quantity, p.unit_cents, p.market_median_cents, p.market_low_cents,
+              p.market_high_cents, p.comparable_count, p.verdict, p.listings, 1, p.checked_at
+         from need_price_checks p join needs n on n.id = p.need_id
+        where n.charity_id = $2 and n.demo_seed and n.id <> $1 and n.title = $3 and n.description = $4
+          and n.amount_cents = $5 and p.status = 'checked'
+        order by p.checked_at desc limit 1
+       on conflict (need_id) do nothing`,
+      [posted.rows[0].id, charityId, t.title, t.description, t.amountCents],
     );
     needsPosted++;
   }

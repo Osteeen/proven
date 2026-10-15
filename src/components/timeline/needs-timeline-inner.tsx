@@ -3,7 +3,7 @@
 import "@bryntum/scheduler/scheduler.css";
 import "@bryntum/scheduler/svalbard-light.css";
 import { BryntumScheduler } from "@bryntum/scheduler-react";
-import { useMemo } from "react";
+import { type Ref, useMemo } from "react";
 import type { TimelineHold, TimelineNeed } from "@/server/releases/timeline";
 
 const DAY = 86_400_000;
@@ -16,7 +16,20 @@ const date = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month:
  * each row and today is a line, so a need running out of time - deadline or holds
  * close to lapsing - stands out. Read-only: it shows, it never moves money.
  */
-export default function NeedsTimelineInner({ needs, holds, now }: { needs: TimelineNeed[]; holds: TimelineHold[]; now: string }) {
+export default function NeedsTimelineInner({
+  needs,
+  holds,
+  now,
+  schedulerRef,
+  onHoldClick,
+}: {
+  needs: TimelineNeed[];
+  holds: TimelineHold[];
+  now: string;
+  /** For a page that drives the timeline (the linked holds grid). */
+  schedulerRef?: Ref<BryntumScheduler>;
+  onHoldClick?: (holdId: string) => void;
+}) {
   const nowMs = new Date(now).getTime();
   const props = useMemo(() => {
     const resources = needs.map((n) => ({ id: n.id, name: n.title, charity: n.charity }));
@@ -56,6 +69,8 @@ export default function NeedsTimelineInner({ needs, holds, now }: { needs: Timel
 
   return (
     <BryntumScheduler
+      ref={schedulerRef}
+      onEventClick={onHoldClick ? ({ eventRecord }: { eventRecord: { id: string | number } }) => onHoldClick(String(eventRecord.id)) : undefined}
       height={Math.min(560, 120 + needs.length * 64)}
       readOnly
       rowHeight={56}

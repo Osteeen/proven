@@ -41,7 +41,7 @@ export default async function ReviewPage() {
 
   return (
     <>
-      <ReviewerHeader signOut={<SignOutButton />} />
+      <ReviewerHeader signOut={<SignOutButton />} current="queue" />
       {reviewer.isDemo && <DemoBanner />}
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6">
         <div className="rise-in">

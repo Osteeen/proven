@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getDb } from "@/server/db/client";
 import { charities, needs } from "@/server/db/schema";
+import templates from "./demo-needs.json";
 import { closeStaleDemoNeeds, refreshDemoNeeds } from "./needs";
 
 const run = process.env.RUN_DB_TESTS === "1" ? describe : describe.skip;
@@ -20,13 +21,13 @@ run("demo needs (local DB)", () => {
       .values({ name: "Demo cleanup test", paypalTrackingId: `demo-clean-${stamp}`, paypalMerchantId: `DCLEAN${stamp}`, status: "active", isDemo: true })
       .returning({ id: charities.id });
     charityId = c!.id;
-    const mk = async (key: string, v: { createdDaysAgo: number; deadlineDays: number; seed: boolean }) => {
+    const mk = async (key: string, v: { createdDaysAgo: number; deadlineDays: number; seed: boolean; title?: string }) => {
       const created = new Date(Date.now() - v.createdDaysAgo * DAY);
       const [n] = await getDb()
         .insert(needs)
         .values({
           charityId,
-          title: `Test ${key}`,
+          title: v.title ?? `Test ${key}`,
           description: "Cleanup test need",
           amountCents: 1000,
           deadline: new Date(Date.now() + v.deadlineDays * DAY),
@@ -40,7 +41,8 @@ run("demo needs (local DB)", () => {
     };
     await mk("visitorOld", { createdDaysAgo: 3, deadlineDays: 10, seed: false });
     await mk("visitorNew", { createdDaysAgo: 0.5, deadlineDays: 10, seed: false });
-    await mk("seedLive", { createdDaysAgo: 5, deadlineDays: 10, seed: true });
+    await mk("seedLive", { createdDaysAgo: 5, deadlineDays: 10, seed: true, title: templates[0]!.title });
+    await mk("seedRetired", { createdDaysAgo: 5, deadlineDays: 10, seed: true });
     await mk("seedOverdue", { createdDaysAgo: 20, deadlineDays: -1, seed: true });
   });
 
@@ -51,10 +53,12 @@ run("demo needs (local DB)", () => {
 
   const status = async (key: string) => (await getDb().select({ s: needs.status }).from(needs).where(eq(needs.id, ids[key]!)))[0]!.s;
 
-  it("clears visitors' needs after two days and seeded needs past their deadline, nothing else", async () => {
-    expect(await closeStaleDemoNeeds(charityId)).toBe(2);
+  it("clears visitors' needs after two days, seeded needs past their deadline and retired seeds, nothing else", async () => {
+    expect(await closeStaleDemoNeeds(charityId)).toBe(3);
     expect(await status("visitorOld")).toBe("cancelled");
     expect(await status("seedOverdue")).toBe("cancelled");
+    // Its template was replaced in demo-needs.json.
+    expect(await status("seedRetired")).toBe("cancelled");
     expect(await status("visitorNew")).toBe("open");
     expect(await status("seedLive")).toBe("open");
   });

@@ -92,7 +92,7 @@ function PayForm({ needId, suppliers, remainingCents }: { needId: string; suppli
         <label htmlFor="supplier-desc" className="text-sm font-medium text-ink">
           What you&apos;re buying
         </label>
-        <input id="supplier-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={120} placeholder="50 wool blankets" className={FIELD} />
+        <input id="supplier-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={120} placeholder="50 fleece blankets" className={FIELD} />
       </div>
       {state.error && !pending && (
         <p role="alert" className={ERROR}>

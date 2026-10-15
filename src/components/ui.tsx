@@ -107,7 +107,16 @@ export function CharityHeader({ signOut }: { signOut: React.ReactNode }) {
 }
 
 /** Reviewer pages: the queue only. */
-export function ReviewerHeader({ signOut }: { signOut: React.ReactNode }) {
+type ReviewerPage = "queue" | "ledger" | "timeline";
+
+/** The page you're on: ink, a little heavier, underlined - and announced to screen readers. */
+function reviewerNav(page: ReviewerPage, current?: ReviewerPage) {
+  return page === current
+    ? { className: `${navLink} font-medium text-ink underline decoration-2 underline-offset-[10px]`, "aria-current": "page" as const }
+    : { className: navLink };
+}
+
+export function ReviewerHeader({ signOut, current }: { signOut: React.ReactNode; current?: ReviewerPage }) {
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5 sm:px-6">
       <Link href="/review" className="inline-flex items-center gap-2 font-serif text-2xl text-ink">
@@ -115,9 +124,9 @@ export function ReviewerHeader({ signOut }: { signOut: React.ReactNode }) {
         Proven <span className="align-middle font-sans text-xs text-ink-muted">Review</span>
       </Link>
       <nav className="flex items-center gap-5 text-sm text-ink-soft">
-        <Link href="/review" className={navLink}>Queue</Link>
-        <Link href="/review/ledger" className={navLink}>Ledger</Link>
-        <Link href="/review/timeline" className={navLink}>Timeline</Link>
+        <Link href="/review" {...reviewerNav("queue", current)}>Queue</Link>
+        <Link href="/review/ledger" {...reviewerNav("ledger", current)}>Ledger</Link>
+        <Link href="/review/timeline" {...reviewerNav("timeline", current)}>Timeline</Link>
         {signOut}
       </nav>
     </header>
