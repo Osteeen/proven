@@ -162,6 +162,20 @@
       "when": 1792005328675,
       "tag": "0022_demo_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792013088634,
+      "tag": "0023_need_price_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792014524844,
+      "tag": "0024_ai_usage",
+      "breakpoints": true
     }
   ]
 }

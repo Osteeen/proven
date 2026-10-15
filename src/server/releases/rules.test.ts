@@ -80,6 +80,9 @@ describe("reviewReason", () => {
     // Checked proof never skips the other reasons.
     expect(reviewReason({ ...base, kind: "final", proofChecked: true, amountCents: 100001 })).toMatch(/threshold/);
   });
+  it("sends a need priced well above market to a person", () => {
+    expect(reviewReason({ ...base, kind: "final", proofChecked: true, priceWellAboveMarket: true })).toMatch(/above market/);
+  });
   it("sends booking payments on needs bought through Proven to a person", () => {
     expect(reviewReason({ ...base, requiresSupplierPayment: true })).toMatch(/Booking payment/);
   });

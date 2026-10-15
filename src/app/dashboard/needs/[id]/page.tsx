@@ -14,6 +14,8 @@ import { recipientCheckSummary } from "@/server/proofs/recipients";
 import { getNeedForCharity } from "@/server/releases/queries";
 import { finalReleaseRoomCents, proofChecked as isProofChecked } from "@/server/releases/rules";
 import { getReleaseProof } from "@/server/releases/service";
+import { PriceCheck } from "@/components/price-check";
+import { getPriceCheck } from "@/server/prices/check";
 import { confirmationStatusByPayment } from "@/server/suppliers/confirmations";
 import { listSupplierPayments, listSuppliersForCharity } from "@/server/suppliers/service";
 import { cancelNeedAction } from "./actions";
@@ -91,6 +93,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
     recipientCheckSummary(ctx, n.id),
   ]);
   const releaseProof = (await getReleaseProof(ctx, n.id))!;
+  const price = await getPriceCheck(n.id);
   const receiptSpend = proofs.filter((p) => p.kind === "receipt" && p.status === "passed").reduce((s, p) => s + (p.amountCents ?? 0), 0);
   const supplierPaid = payments.filter((p) => p.status === "completed").reduce((s, p) => s + p.amountCents, 0);
   const acceptsProof = ["open", "in_review"].includes(n.status);
@@ -114,6 +117,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
     finalRoomCents: releaseProof.requiresSupplierPayment ? roomCents : null,
     proofChecked: proofOk,
     requiresSupplierPayment: releaseProof.requiresSupplierPayment,
+    priceWellAboveMarket: price?.verdict === "well_above",
     donorCount: liveDonors,
     trustTier: n.trustTier,
     completedReleases: n.completedReleases,
@@ -139,6 +143,11 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
           </Link>
         </div>
 
+        {price && price.status === "checked" && (
+          <div className="rise-in mt-6">
+            <PriceCheck check={price} detailed />
+          </div>
+        )}
         {releasedNotice && (
           <p role="status" className={`rise-in mt-6 rounded-[10px] border px-4 py-3 text-sm ${releasedNotice.tone}`}>
             {releasedNotice.text}

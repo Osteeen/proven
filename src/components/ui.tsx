@@ -114,7 +114,12 @@ export function ReviewerHeader({ signOut }: { signOut: React.ReactNode }) {
         <ProvenMark />
         Proven <span className="align-middle font-sans text-xs text-ink-muted">Review</span>
       </Link>
-      <nav className="flex items-center gap-5 text-sm text-ink-soft">{signOut}</nav>
+      <nav className="flex items-center gap-5 text-sm text-ink-soft">
+        <Link href="/review" className={navLink}>Queue</Link>
+        <Link href="/review/ledger" className={navLink}>Ledger</Link>
+        <Link href="/review/timeline" className={navLink}>Timeline</Link>
+        {signOut}
+      </nav>
     </header>
   );
 }

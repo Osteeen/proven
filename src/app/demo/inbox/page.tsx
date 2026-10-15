@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pagination } from "@/components/pagination";
-import { SiteHeader } from "@/components/ui";
+import { BackLink, SiteHeader } from "@/components/ui";
 import { demoLoginEnabled } from "@/server/auth/demo-login";
 import { answerStates, type AnswerState } from "@/server/demo/message-states";
 import { getDb } from "@/server/db/client";
@@ -77,7 +77,8 @@ export default async function DemoInboxPage({ searchParams }: { searchParams: Pr
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-6 sm:px-6">
-        <div className="rise-in">
+        <BackLink href="/#demo">Back to the demo</BackLink>
+        <div className="rise-in mt-3">
           <h1 className="font-serif text-3xl text-ink">Messages to donors, suppliers and people helped</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
             In real use each person gets these by email or text. In this demo you play all of them - open the message for the

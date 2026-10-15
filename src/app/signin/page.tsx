@@ -1,4 +1,5 @@
 import { demoLoginEnabled } from "@/server/auth/demo-login";
+import { BackLink } from "@/components/ui";
 import { demoSignIn } from "./actions";
 
 const ERRORS: Record<string, string> = {
@@ -14,6 +15,9 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4">
+      <div className="self-start">
+        <BackLink href="/">Back to home</BackLink>
+      </div>
       <h1 className="text-3xl font-semibold">Sign in to Proven</h1>
       <p className="opacity-80">Charities sign in with the PayPal business account that receives their donations.</p>
       {message && (

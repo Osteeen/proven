@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Money, NeedStatus, SiteHeader, formatDate } from "@/components/ui";
+import { BackLink, Money, NeedStatus, SiteHeader, formatDate } from "@/components/ui";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
 import { getPublicNeed } from "@/server/needs/repo";
 import { formatUsd } from "@/server/money";
@@ -9,6 +9,9 @@ import { OtherNeeds } from "@/components/other-needs";
 import { MIN_DONATION_CENTS, remainingForNeed, reservedForNeed } from "@/server/donations/service";
 import { AnimatedMoney } from "@/components/motion/animated-money";
 import { ProgressBar } from "@/components/motion/progress-bar";
+import { PriceCheck } from "@/components/price-check";
+import { getPriceCheck } from "@/server/prices/check";
+import { MIN_COMPARABLES_FOR_DONORS } from "@/server/prices/price-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +23,14 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
   const pct = Math.min(100, Math.round((need.heldCents / need.amountCents) * 100));
   // Includes gifts waiting on PayPal approval, so two donors can't both take the last dollars.
   // Gifts started but not yet approved on PayPal (they hold their place for 15 minutes) - counted directly.
-  const [remaining, reserved] = await Promise.all([remainingForNeed(need.id), reservedForNeed(need.id)]);
+  const [remaining, reserved, price] = await Promise.all([remainingForNeed(need.id), reservedForNeed(need.id), getPriceCheck(need.id)]);
   return (
     <>
       <SiteHeader />
       <main className="mx-auto grid w-full max-w-5xl gap-10 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <article className="rise-in">
-          <p className="text-sm text-ink-muted">{need.charityName}</p>
+          <BackLink href="/needs">Back to all needs</BackLink>
+          <p className="mt-4 text-sm text-ink-muted">{need.charityName}</p>
           <h1 className="mt-1 font-serif text-3xl leading-tight text-ink sm:text-4xl">{need.title}</h1>
           <div className="mt-3">
             <NeedStatus status={need.status} />
@@ -43,6 +47,12 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
             <li>3. If at least two checks agree, you&apos;re charged only what was actually spent.</li>
             <li>4. If it isn&apos;t proven in time, the hold is cancelled and you&apos;re never charged.</li>
           </ol>
+          {/* Donors see the check only when it reassures: anything else is for the charity and reviewers. */}
+          {price && price.status === "checked" && price.verdict === "in_line" && price.comparableCount >= MIN_COMPARABLES_FOR_DONORS && (
+            <div className="mt-6">
+              <PriceCheck check={price} />
+            </div>
+          )}
         </article>
 
         <aside className="rise-in self-start rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "120ms" }}>

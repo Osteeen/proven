@@ -4,6 +4,7 @@ import { getDb } from "@/server/db/client";
 import { charities, donations, needs, refunds } from "@/server/db/schema";
 import { sendMail } from "@/server/mail/mailer";
 import { formatUsd } from "@/server/money";
+import { impactFacts } from "@/server/impact";
 
 const SETTLED = ["captured", "voided", "partially_captured", "authorized"] as const;
 
@@ -31,6 +32,8 @@ export async function emailDonorsAfterSettlement(needId: string, outcome: "prove
       .innerJoin(charities, eq(charities.id, donations.charityId))
       .where(and(eq(donations.needId, needId), inArray(donations.status, [...SETTLED]), isNotNull(donations.donorEmail)));
 
+    // The impact receipt: the same verified facts for every donor to this need.
+    const impact = outcome === "proven" ? await impactFacts(needId).catch(() => []) : [];
     const byGift = new Map<string, typeof rows>();
     for (const r of rows) byGift.set(r.hash, [...(byGift.get(r.hash) ?? []), r]);
 
@@ -51,6 +54,7 @@ export async function emailDonorsAfterSettlement(needId: string, outcome: "prove
             "",
             `Charged: ${formatUsd(charged)} of your ${formatUsd(total)} - only what was actually spent.`,
             never > 0 ? `Never charged: ${formatUsd(never)}. PayPal has released it.` : "Your whole donation was used.",
+            ...(impact.length ? ["", "What your donation did - and how we know:", ...impact.map((f) => `- ${f}`)] : []),
           ]
         : [
             `"${first.needTitle}" from ${first.charityName} was closed without proof of delivery.`,

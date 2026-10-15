@@ -29,6 +29,7 @@ export function ReleaseForm({
   finalRoomCents,
   proofChecked,
   requiresSupplierPayment,
+  priceWellAboveMarket = false,
   donorCount,
   trustTier,
   completedReleases,
@@ -42,6 +43,7 @@ export function ReleaseForm({
   finalRoomCents: number | null;
   proofChecked: boolean;
   requiresSupplierPayment: boolean;
+  priceWellAboveMarket?: boolean;
   donorCount: number;
   trustTier: "new" | "established" | "trusted";
   completedReleases: number;
@@ -53,7 +55,7 @@ export function ReleaseForm({
   const capByRule = kind === "final" && finalRoomCents !== null && finalRoomCents < heldCents;
   const max = kind === "advance" ? advanceLeftCents : capByRule ? finalRoomCents! : heldCents;
   const tooMuch = amountCents !== undefined && amountCents > max;
-  const review = amountCents ? reviewReason({ kind, trustTier, completedReleases, amountCents, thresholdCents, proofChecked, requiresSupplierPayment }) : null;
+  const review = amountCents ? reviewReason({ kind, trustTier, completedReleases, amountCents, thresholdCents, proofChecked, requiresSupplierPayment, priceWellAboveMarket }) : null;
   const pct = amountCents && heldCents ? Math.min(100, Math.round((amountCents / heldCents) * 100)) : 0;
 
   if (state.done) {

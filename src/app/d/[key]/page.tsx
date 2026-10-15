@@ -5,11 +5,12 @@ import { AnimatedMoney } from "@/components/motion/animated-money";
 import { CopyLinkButton } from "@/components/motion/copy-link";
 import { GiftSteps } from "@/components/motion/gift-steps";
 import { OtherNeeds } from "@/components/other-needs";
-import { Money, SiteHeader, StatusPill, formatDate } from "@/components/ui";
+import { BackLink, Money, SiteHeader, StatusPill, formatDate } from "@/components/ui";
 import { getGiftForDonor } from "@/server/donations/service";
 import { maskEmail } from "@/server/mail/mailer";
 import { formatUsd } from "@/server/money";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
+import { impactFacts } from "@/server/impact";
 import { startTopUpAction } from "../../needs/[id]/actions";
 import { DonateForm } from "../../needs/[id]/donate-form";
 
@@ -50,6 +51,10 @@ export default async function DonorGiftPage({
   if (!g) notFound();
   const v = VIEW[g.status] ?? VIEW.pending_approval!;
   const live = g.status !== "failed" && g.status !== "pending_approval";
+  // The impact receipt, once the delivery is proven: verified facts only.
+  // Net of refunds: after a refund the receipt shrinks, or goes.
+  const usedCents = g.chargedCents - g.refundedCents;
+  const impact = g.needStatus === "proven" && usedCents > 0 ? await impactFacts(g.needId) : [];
 
   return (
     <>
@@ -71,6 +76,13 @@ export default async function DonorGiftPage({
           </p>
         )}
 
+        {/* Donors often land here from PayPal or an email, with no page to go back to. */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+          <BackLink href={`/needs/${g.needId}`}>Back to the need</BackLink>
+          <Link href="/needs" className="text-sm text-ink-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink">
+            See other needs
+          </Link>
+        </div>
         <div className="rise-in">
           <StatusPill tone={v.tone}>{v.pill}</StatusPill>
           <h1 className="mt-3 font-serif text-3xl leading-tight text-ink sm:text-4xl">{v.headline}</h1>
@@ -126,6 +138,26 @@ export default async function DonorGiftPage({
             </ul>
           )}
         </section>
+
+        {impact.length > 0 && (
+          <section className="rise-in mt-8 rounded-[10px] border border-proven/30 bg-proven-bg p-6" style={{ animationDelay: "240ms" }}>
+            <h2 className="font-serif text-xl text-proven-text">What your donation did</h2>
+            <p className="mt-1 text-sm text-proven-text/90">
+              {formatUsd(usedCents)} of your donation went to {g.needTitle.charAt(0).toLowerCase() + g.needTitle.slice(1)}. Here&apos;s how Proven knows it was delivered:
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-proven-text">
+              {impact.map((f) => (
+                <li key={f} className="flex gap-2.5">
+                  <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-[11px] text-proven-text/80">Written only from records Proven holds - PayPal&apos;s payment record and checks that passed. The people helped stay anonymous.</p>
+          </section>
+        )}
 
         {g.canTopUp && (
           <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "280ms" }}>

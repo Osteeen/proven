@@ -6,6 +6,8 @@ import { toCents } from "@/server/money";
 import { refundNeed, retryRefund } from "@/server/releases/refunds";
 import { approveRelease, cancelNeed, finishClosingNeed, rejectRelease, ReleaseError, retryRelease } from "@/server/releases/service";
 import { rejectSupplier, revokeSupplier, SupplierError, verifySupplier } from "@/server/suppliers/service";
+import { GridAiError, gridStateFromRequest } from "@/server/ai/grid-state";
+import { allow } from "@/server/rate-limit";
 
 type Result = { error?: string };
 
@@ -122,4 +124,21 @@ export async function rejectSupplierAction(supplierId: string): Promise<Result> 
 export async function revokeSupplierAction(supplierId: string): Promise<Result> {
   const reviewer = await requireReviewer();
   return supplierRun(() => revokeSupplier(reviewer, supplierId), "Couldn't revoke the supplier. Try again.");
+}
+
+/**
+ * "Ask the grid": a reviewer's plain-English request becomes a grid view (AG Grid AI
+ * Toolkit). Reviewers only; it changes what they see, never any data.
+ */
+export async function askGridAction(input: { grid: "queue" | "ledger"; request: string; schema: unknown; state: unknown }): Promise<{ gridState?: Record<string, unknown>; error?: string }> {
+  const reviewer = await requireReviewer();
+  if (!allow(`grid-ai:${reviewer.userId}`, 20, 60_000)) return { error: "That's a lot of requests - wait a minute and try again." };
+  const grid = input.grid === "ledger" ? "the ledger - every hold, charge, release and refund, one row each" : "the review queue - releases waiting for a reviewer, one row each";
+  try {
+    return { gridState: await gridStateFromRequest({ userId: reviewer.userId, request: String(input.request ?? ""), schema: input.schema, state: input.state, grid }) };
+  } catch (e) {
+    if (e instanceof GridAiError) return { error: e.message };
+    console.error("Grid AI failed", e?.constructor?.name);
+    return { error: "The AI couldn't work that out. Try saying it another way." };
+  }
 }

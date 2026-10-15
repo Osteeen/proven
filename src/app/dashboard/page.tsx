@@ -6,6 +6,8 @@ import { SignOutButton } from "@/components/motion/sign-out-button";
 import { Toast } from "@/components/motion/toast";
 import { requireCharity } from "@/server/auth/access";
 import { listCharityNeeds } from "@/server/needs/repo";
+import { timelineData } from "@/server/releases/timeline";
+import { NeedsTimeline } from "@/components/timeline/needs-timeline";
 import { DashboardNeeds } from "./dashboard-needs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,7 +16,7 @@ const requestTime = () => Date.now();
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ posted?: string }> }) {
   const charity = await requireCharity();
-  const [needs, { posted }] = await Promise.all([listCharityNeeds(charity), searchParams]);
+  const [needs, { posted }, timeline] = await Promise.all([listCharityNeeds(charity), searchParams, timelineData([charity.charityId])]);
   const held = needs.reduce((s, n) => s + n.heldCents, 0);
   const captured = needs.reduce((s, n) => s + n.capturedCents, 0);
   const open = needs.filter((n) => n.status === "open").length;
@@ -72,6 +74,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             status: n.status,
           }))}
         />
+        {timeline.needs.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-serif text-xl text-ink">Holds timeline</h2>
+            <p className="mb-3 mt-1 text-sm text-ink-muted">Deliver and release before a hold lapses - PayPal holds last 29 days.</p>
+            <NeedsTimeline needs={timeline.needs} holds={timeline.holds} now={new Date(now).toISOString()} />
+          </section>
+        )}
       </main>
     </>
   );

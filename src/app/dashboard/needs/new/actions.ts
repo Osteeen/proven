@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { checkNeedPrice } from "@/server/prices/check";
 import { requireCharity } from "@/server/auth/access";
 import { parseNeedInput, type FieldErrors } from "@/server/needs/input";
 import { NeedLimitError, createNeed } from "@/server/needs/repo";
@@ -34,6 +36,8 @@ export async function createNeedAction(_prev: NeedFormState, formData: FormData)
     if (e instanceof NeedLimitError) return { errors: { form: e.message }, values };
     return { errors: { form: "Couldn't save the need. Check the details and try again." }, values };
   }
+  // Market-price check (Channel3) runs after the response, so posting stays instant.
+  if (process.env.CHANNEL3_API_KEY) after(() => checkNeedPrice(id));
   revalidatePath("/");
   revalidatePath("/dashboard");
   redirect(`/dashboard?posted=${id}`);

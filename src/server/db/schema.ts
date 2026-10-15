@@ -689,3 +689,41 @@ export const recipientContacts = pgTable(
     check("recipient_contacts_token_if_sampled", sql`${t.sampled} or ${t.tokenHash} is null`),
   ],
 );
+
+/**
+ * Channel3 market-price check on a need: Claude reads what the need buys, Channel3
+ * finds listings, Claude keeps only truly comparable ones (per unit), and code
+ * compares the need's unit price with the market median. One row per need.
+ */
+export const priceVerdict = pgEnum("price_verdict", ["in_line", "above", "well_above", "below", "unknown"]);
+
+export const needPriceChecks = pgTable("need_price_checks", {
+  needId: uuid("need_id")
+    .primaryKey()
+    .references(() => needs.id, { onDelete: "restrict" }),
+  status: text("status").notNull(), // "checked" | "failed"
+  item: text("item"),
+  quantity: integer("quantity"),
+  unitCents: integer("unit_cents"),
+  marketMedianCents: integer("market_median_cents"),
+  marketLowCents: integer("market_low_cents"),
+  marketHighCents: integer("market_high_cents"),
+  comparableCount: integer("comparable_count").notNull().default(0),
+  verdict: priceVerdict("verdict").notNull().default("unknown"),
+  // Up to 5 comparable listings: { title, unitCents, domain, url }.
+  listings: jsonb("listings").$type<{ title: string; unitCents: number; domain: string | null; url: string | null }[]>(),
+  attempts: integer("attempts").notNull().default(1),
+  checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** AI calls per user per day (Ask the grid): survives restarts, so caps can't be reset by redeploying. */
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    userId: text("user_id").notNull(),
+    day: text("day").notNull(), // YYYY-MM-DD, UTC
+    feature: text("feature").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day, t.feature] })],
+);

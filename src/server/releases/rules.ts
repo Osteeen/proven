@@ -119,9 +119,12 @@ export function reviewReason(input: {
   proofChecked?: boolean;
   /** The need is bought through Proven (asks for "Paid the supplier with PayPal"). */
   requiresSupplierPayment?: boolean;
+  /** Channel3 found the need priced well above comparable market listings. */
+  priceWellAboveMarket?: boolean;
 }): string | null {
   if (input.trustTier === "new" && input.completedReleases === 0) return "First release by a new charity";
   if (input.amountCents > input.thresholdCents) return "Above this charity's review threshold";
+  if (input.priceWellAboveMarket) return "Priced well above market prices";
   // Up-front money has no delivery proof yet: on needs bought through Proven a person always looks.
   if (input.kind === "advance" && input.requiresSupplierPayment) return "Booking payment before any proof";
   if (input.kind === "final" && !input.proofChecked) return "Delivery proof is checked by a person";

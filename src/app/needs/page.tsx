@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NeedCard } from "@/components/need-card";
-import { SiteHeader } from "@/components/ui";
+import { BackLink, SiteHeader } from "@/components/ui";
 import { PUBLIC_SORTS, listPublicNeeds, type PublicSort } from "@/server/needs/repo";
 import { NeedsToolbar } from "./needs-toolbar";
 
@@ -23,7 +23,8 @@ export default async function AllNeedsPage({ searchParams }: { searchParams: Pro
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6 sm:px-6">
-        <h1 className="rise-in font-serif text-3xl text-ink sm:text-4xl">Needs to fund</h1>
+        <BackLink href="/">Back to home</BackLink>
+        <h1 className="rise-in mt-3 font-serif text-3xl text-ink sm:text-4xl">Needs to fund</h1>
         <p className="mt-1 text-sm text-ink-muted">
           {total} open {total === 1 ? "need" : "needs"}. Each has a price, a deadline, and the proof that releases the money.
         </p>

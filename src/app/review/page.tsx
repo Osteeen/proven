@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ConfirmButton } from "@/components/motion/confirm-button";
 import { SignOutButton } from "@/components/motion/sign-out-button";
-import { DemoBanner, Money, ReviewerHeader, StatusPill, formatDate } from "@/components/ui";
+import { DemoBanner, ReviewerHeader, formatDate } from "@/components/ui";
 import { requireReviewer } from "@/server/auth/access";
 import { formatUsd } from "@/server/money";
 import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
-import { ProofList } from "@/components/proof-list";
 import { listProofsForNeed } from "@/server/proofs/service";
 import { listRefundableNeeds, listReviewQueue, listWebhookAlerts } from "@/server/releases/queries";
 import { listSuppliersToVerify, listVerifiedSuppliers, listWithdrawnProofNeeds } from "@/server/suppliers/service";
-import { approveAction, finishClosingAction, notProvenAction, rejectAction, rejectSupplierAction, retryAction, revokeSupplierAction, verifySupplierAction } from "./actions";
+import { finishClosingAction, rejectSupplierAction, retryAction, revokeSupplierAction, verifySupplierAction } from "./actions";
+import { QueueGrid } from "./queue-grid";
+import { getPriceCheck } from "@/server/prices/check";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Review queue - Proven", robots: { index: false, follow: false } };
@@ -35,13 +36,14 @@ export default async function ReviewPage() {
     ),
   );
   const waiting = queue.releases.filter((r) => r.status === "pending_review");
+  const priceByNeed = new Map(await Promise.all([...new Set(waiting.map((r) => r.needId))].map(async (id) => [id, await getPriceCheck(id)] as const)));
   const failed = queue.releases.filter((r) => r.status !== "pending_review");
 
   return (
     <>
       <ReviewerHeader signOut={<SignOutButton />} />
       {reviewer.isDemo && <DemoBanner />}
-      <main className="mx-auto w-full max-w-4xl px-4 pb-20 pt-8 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6">
         <div className="rise-in">
           <p className="text-sm text-ink-muted">Review queue</p>
           <h1 className="font-serif text-3xl text-ink">
@@ -200,90 +202,32 @@ export default async function ReviewPage() {
             The queue is clear. New requests show up here as charities make them.
           </p>
         ) : (
-          <ul className="mt-8 space-y-4">
-            {waiting.map((r, i) => (
-              <li key={r.id} className="rise-in rounded-[10px] border border-line bg-card p-5" style={{ animationDelay: `${120 + i * 60}ms` }}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <StatusPill tone="review">{r.reviewReason ?? "Needs review"}</StatusPill>
-                    <h3 className="mt-2 font-serif text-xl text-ink">
-                      <Link href={`/needs/${r.needId}`} className="hover:underline hover:underline-offset-4">{r.needTitle}</Link>
-                    </h3>
-                    <p className="text-sm text-ink-muted">
-                      {r.charityName} - {r.trustTier} charity - asked {formatDate(r.createdAt)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-ink-muted">{r.kind === "advance" ? "Booking payment" : "Delivery release"}</p>
-                    <Money cents={r.amountCents} className="text-2xl text-ink" />
-                  </div>
-                </div>
-
-                <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 font-mono text-xs [&>dd]:text-right [&>dt]:text-ink-muted">
-                  <dt>Need</dt>
-                  <dd><Money cents={r.needAmountCents} /></dd>
-                  <dt>Held now</dt>
-                  <dd><Money cents={r.heldCents} /></dd>
-                  <dt>{r.kind === "advance" ? "Stays held" : "Never charged"}</dt>
-                  <dd className="text-proven">{formatUsd(Math.max(0, r.heldCents - r.amountCents))}</dd>
-                  <dt>Deliver by</dt>
-                  <dd>{formatDate(r.deadline)}</dd>
-                  <dt>Proof required</dt>
-                  <dd>{r.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" + ")}</dd>
-                </dl>
-                {r.note && <p className="mt-3 rounded-md bg-[#efece4] px-3 py-2 text-sm text-ink-soft">&ldquo;{r.note}&rdquo;</p>}
-
-                <div className="mt-4">
-                  <p className="text-xs text-ink-muted">Proof on this need</p>
-                  {(proofsByNeed.get(r.needId) ?? []).length === 0 ? (
-                    <p className="mt-1 text-sm text-ink-soft">No proof uploaded yet.</p>
-                  ) : (
-                    <div className="mt-2">
-                      <ProofList proofs={proofsByNeed.get(r.needId)!} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-                  {r.kind === "final" && (
-                    <ConfirmButton
-                      label="Not proven"
-                      tone="danger"
-                      align="left"
-                      title="Mark this need not proven?"
-                      body={`Every hold on it is cancelled - ${formatUsd(r.heldCents)} is never charged. Donors get an email.`}
-                      confirmLabel="Mark not proven"
-                    pendingLabel="Releasing holds..."
-                      action={notProvenAction.bind(null, r.needId)}
-                      className="mr-auto"
-                    />
-                  )}
-                  <ConfirmButton
-                    label="Send back"
-                    tone="danger"
-                    title="Send this release back?"
-                    body="Nothing is charged. The need reopens so the charity can send a corrected request."
-                    confirmLabel="Send back"
-                    pendingLabel="Sending back..."
-                    action={rejectAction.bind(null, r.id)}
-                  />
-                  <ConfirmButton
-                    label={`Approve ${formatUsd(r.amountCents)}`}
-                    title="Approve and pay?"
-                    body={
-                      r.kind === "final"
-                        ? `PayPal pays ${r.charityName} ${formatUsd(r.amountCents)} from donors' holds, in proportion. The rest of every hold is cancelled.`
-                        : `PayPal pays ${r.charityName} ${formatUsd(r.amountCents)} now. The rest stays held until delivery.`
-                    }
-                    confirmLabel="Approve and pay"
-                    pendingLabel="Paying..."
-                    cancelLabel="Not yet"
-                    action={approveAction.bind(null, r.id)}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <section className="rise-in mt-8" style={{ animationDelay: "120ms" }}>
+            <p className="mb-3 text-xs text-ink-muted">Open a row to see its proof and decide. Nothing is charged until you approve.</p>
+            <QueueGrid
+              rows={waiting.map((r) => ({
+                id: r.id,
+                needId: r.needId,
+                needTitle: r.needTitle,
+                charityName: r.charityName,
+                trustTier: r.trustTier,
+                kind: r.kind,
+                amountCents: r.amountCents,
+                needAmountCents: r.needAmountCents,
+                heldCents: r.heldCents,
+                deadline: r.deadline.toISOString(),
+                createdAt: r.createdAt.toISOString(),
+                reviewReason: r.reviewReason,
+                note: r.note,
+                requiredProof: r.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" + "),
+                proofs: proofsByNeed.get(r.needId) ?? [],
+                price: (() => {
+                  const c = priceByNeed.get(r.needId);
+                  return c && c.status === "checked" ? c : null;
+                })(),
+              }))}
+            />
+          </section>
         )}
 
         {refundable.length > 0 && (

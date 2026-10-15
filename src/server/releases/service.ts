@@ -5,7 +5,7 @@ import type { CharityContext, ReviewerContext } from "@/server/auth/access";
 // Database-only scope helper: keeps Auth.js out of this module (and its tests).
 import { reviewerMayActOn } from "@/server/auth/scope";
 import { getDb } from "@/server/db/client";
-import { captures, charities, donations, ledgerEntries, memberships, needs, proofs, releases, supplierPayments, suppliers } from "@/server/db/schema";
+import { captures, charities, donations, ledgerEntries, memberships, needPriceChecks, needs, proofs, releases, supplierPayments, suppliers } from "@/server/db/schema";
 import { cents, formatUsd, toCents } from "@/server/money";
 import { PayPalError } from "@/server/paypal/client";
 import { captureAuthorization, getOrderCaptures, voidAuthorization } from "@/server/paypal/orders";
@@ -178,6 +178,11 @@ export async function requestRelease(
       thresholdCents: need.thresholdCents,
       proofChecked: proofChecked(proof),
       requiresSupplierPayment: proof.requiresSupplierPayment,
+      priceWellAboveMarket: await tx
+        .select({ v: needPriceChecks.verdict })
+        .from(needPriceChecks)
+        .where(eq(needPriceChecks.needId, need.id))
+        .then((r) => r[0]?.v === "well_above"),
     });
 
     let row;

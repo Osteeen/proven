@@ -120,3 +120,39 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* AG Grid, fine version: a column's filter and menu icons only show when you point at it,
+   and money lines up in Proven's mono face. */
+.ag-header-cell .ag-header-cell-menu-button,
+.ag-header-cell .ag-header-cell-filter-button {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.ag-header-cell:hover .ag-header-cell-menu-button,
+.ag-header-cell:hover .ag-header-cell-filter-button,
+.ag-header-cell:focus-within .ag-header-cell-menu-button,
+.ag-header-cell:focus-within .ag-header-cell-filter-button,
+.ag-header-cell .ag-filter-active {
+  opacity: 1;
+}
+.ag-header-cell-text {
+  letter-spacing: 0.02em;
+}
+.grid-money {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bryntum timeline: the "Today" line passes under the hold bars (it sat on top of their text). */
+.proven-timeline {
+  --b-time-range-line-zindex: 5;
+  /* "Today": a thin, muted line - a reference, not an alarm. */
+  --b-current-time-color: #8a93a8;
+  --b-time-range-line-width: 1px;
+}
+/* Delivery deadline: a clear blue marker on each need's row, ending on the deadline. */
+.proven-timeline .b-sch-resource-time-range.deadline-band {
+  background: rgba(29, 78, 216, 0.16);
+  border-right: 3px solid #1d4ed8;
+  opacity: 1;
+}

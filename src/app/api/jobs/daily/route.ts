@@ -4,6 +4,7 @@ import { markLapsedHolds } from "@/server/jobs/lapsed-holds";
 import { sweepStuckProofs } from "@/server/proofs/service";
 import { sweepRecipientChecks } from "@/server/proofs/recipients";
 import { closeStaleDemoNeeds, refreshDemoNeeds } from "@/server/demo/needs";
+import { sweepPriceChecks } from "@/server/prices/check";
 import { sweepSupplierPayments } from "@/server/suppliers/service";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
   const recipientChecks = await sweepRecipientChecks();
   // Demo mode only: clear visitors' test needs, then top the seeded ones back up.
   const demoNeeds = process.env.DEMO_LOGIN === "true" ? { closed: await closeStaleDemoNeeds(), posted: await refreshDemoNeeds() } : null;
-  console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds });
-  return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds });
+  const priceChecks = process.env.CHANNEL3_API_KEY ? await sweepPriceChecks() : 0;
+  console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds, priceChecks });
+  return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds, priceChecks });
 }
