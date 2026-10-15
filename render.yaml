@@ -26,7 +26,8 @@ projects:
             plan: free
             region: oregon
             # Migrations and the demo seed run on every deploy, before the new build goes live.
-            buildCommand: npm ci --include=dev && npm run db:migrate && npm run db:seed-demo && npm run build
+            # The build sees the host's cores but gets 2 CPUs; one compiler thread per core ran out of 8 GB.
+            buildCommand: npm ci --include=dev && npm run db:migrate && npm run db:seed-demo && RAYON_NUM_THREADS=2 TOKIO_WORKER_THREADS=2 npm run build
             startCommand: npm run start
             healthCheckPath: /api/health
             envVars:
