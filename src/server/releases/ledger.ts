@@ -17,16 +17,17 @@ export type LedgerRow = {
   actor: string;
 };
 
-const MAX_ROWS = 5000;
+/** The ledger page shows the newest entries up to this many; the page says so when there are more. */
+export const LEDGER_MAX_ROWS = 5000;
 
 /**
  * The money ledger for reviewers, newest first: every hold, renewal, charge,
  * release and refund, one row each. A demo reviewer sees demo charities only.
  * Donors stay anonymous: a donation shows as a short reference, never a name or email.
  */
-export async function listLedger(reviewer: ReviewerContext): Promise<LedgerRow[]> {
+export async function listLedger(reviewer: ReviewerContext): Promise<{ rows: LedgerRow[]; more: boolean }> {
   const scope = await reviewerCharityScope(reviewer);
-  if (scope !== null && scope.length === 0) return [];
+  if (scope !== null && scope.length === 0) return { rows: [], more: false };
   const rows = await getDb()
     .select({
       id: ledgerEntries.id,
@@ -45,8 +46,10 @@ export async function listLedger(reviewer: ReviewerContext): Promise<LedgerRow[]
     .leftJoin(needs, eq(needs.id, donations.needId))
     .where(scope === null ? undefined : inArray(ledgerEntries.charityId, scope))
     .orderBy(desc(ledgerEntries.createdAt), desc(sql`${ledgerEntries.id}`))
-    .limit(MAX_ROWS);
-  return rows.map((r) => ({
+    // One extra row tells us whether older entries were left out.
+    .limit(LEDGER_MAX_ROWS + 1);
+  const more = rows.length > LEDGER_MAX_ROWS;
+  const mapped = rows.slice(0, LEDGER_MAX_ROWS).map((r) => ({
     id: r.id,
     at: r.at.toISOString(),
     charity: r.charity,
@@ -57,4 +60,5 @@ export async function listLedger(reviewer: ReviewerContext): Promise<LedgerRow[]
     paypalReference: r.paypalReference,
     actor: r.actor,
   }));
+  return { rows: mapped, more };
 }

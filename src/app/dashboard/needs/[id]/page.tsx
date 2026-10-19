@@ -104,10 +104,12 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
   const roomCents = finalReleaseRoomCents(releaseProof);
   const promised = releaseProof.requiredSecondChecks;
   const secondCheck = passed.find((p) => promised.includes(p.kind));
+  // A promised check waiting for a person also lets the charity ask - that request always goes to a reviewer.
+  const checkInReview = secondCheck ? undefined : proofs.find((p) => p.status === "needs_review" && promised.includes(p.kind));
   const promisedLeft = promised.filter((k) => !releaseProof.passedKinds.includes(k));
-  // The release can be asked for once the supplier is paid and one promised check passed;
-  // it skips review only when everything promised passed and nothing is in doubt (proofOk).
-  const gateOpen = releaseProof.supplierPaidCents > 0 && Boolean(secondCheck);
+  // The release can be asked for once the supplier is paid and one promised check passed or waits
+  // for a person; it skips review only when everything promised passed and nothing is in doubt (proofOk).
+  const gateOpen = releaseProof.supplierPaidCents > 0 && Boolean(secondCheck ?? checkInReview);
   const canRelease = open && n.heldCents > 0 && !n.inFlight;
   const showBooking = canRelease && n.fundingModel === "staged" && n.advanceLeftCents > 0;
   const releaseProps = {
@@ -148,7 +150,8 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
             <PriceCheck check={price} detailed />
           </div>
         )}
-        {releasedNotice && (
+        {/* While the request is still open, the banner below already says it - one message, not two. */}
+        {releasedNotice && !n.inFlight && (
           <p role="status" className={`rise-in mt-6 rounded-[10px] border px-4 py-3 text-sm ${releasedNotice.tone}`}>
             {releasedNotice.text}
           </p>
@@ -262,7 +265,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
               )}
             </div>
             <p className="mt-1 text-xs text-ink-muted">
-              This need is released when {n.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" and ").toLowerCase()} check out.
+              You get paid once these check out: {n.requiredProof.map((p) => (PROOF_LABELS[p as ProofType] ?? p).toLowerCase()).join(", ")}.
             </p>
             {acceptsProof && n.requiredProof.includes("receipt") && (
               <div className="mt-3">
@@ -307,10 +310,12 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
                     "Pay the supplier with PayPal (above)"
                   )}
                 </Check>
-                <Check done={Boolean(secondCheck)}>
+                <Check done={Boolean(secondCheck ?? checkInReview)}>
                   {secondCheck
                     ? `One more check passed - ${(PROOF_LABELS[secondCheck.kind as ProofType] ?? secondCheck.kind).toLowerCase()}`
-                    : `One more check that passes - ${promised.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(" or ")} (above)`}
+                    : checkInReview
+                      ? `One more check sent to a person - ${(PROOF_LABELS[checkInReview.kind as ProofType] ?? checkInReview.kind).toLowerCase()}`
+                      : `One more check that passes - ${promised.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(" or ")} (above)`}
                 </Check>
               </ul>
             )}
@@ -341,7 +346,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
 
         {n.releases.length > 0 && (
           <section className="rise-in mt-8" style={{ animationDelay: "240ms" }}>
-            <h2 className="font-serif text-lg text-ink">Releases</h2>
+            <h2 className="font-serif text-lg text-ink">Payments to you</h2>
             <ul className="mt-3 divide-y divide-dashed divide-line rounded-[10px] border border-line bg-card">
               {n.releases.map((r) => {
                 const s = RELEASE_STATUS[r.status] ?? { tone: "neutral" as const, label: r.status };
@@ -390,7 +395,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
         {closable && (
           <section className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-[10px] border border-dashed border-line px-4 py-4">
             <p className="min-w-0 flex-1 text-sm text-ink-muted">
-              Can&apos;t deliver this? Close it and every hold is cancelled - donors are never charged for it.
+              Can&apos;t deliver this? Close it and every donor&apos;s money goes back to them. Nobody pays.
             </p>
             <ConfirmButton
               label="Close need"

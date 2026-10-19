@@ -77,6 +77,7 @@ export async function releaseProof(tx: Tx, need: { id: string; requiredProof: st
     requiresSupplierPayment: need.requiredProof.includes("supplier_paypal_payment"),
     supplierPaidCents: paid?.c ?? 0,
     passedKinds: [...new Set(byKind.filter((r) => r.status === "passed").map((r) => r.kind))],
+    reviewKinds: [...new Set(byKind.filter((r) => r.status === "needs_review").map((r) => r.kind))],
     requiredSecondChecks: need.requiredProof.filter((k) => (SECOND_CHECKS as readonly string[]).includes(k)),
     openIssues: byKind.filter((r) => r.status !== "passed").reduce((s, r) => s + r.n, 0),
     releasedCents: taken?.c ?? 0,

@@ -22,6 +22,9 @@ import {
 
 export class SupplierError extends Error {}
 
+/** The same supplier, amount and purchase was already paid today - the charity confirms before paying again. */
+export class DuplicateSupplierPayment extends SupplierError {}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 const PAYABLE_NEED = ["open", "funded", "delivering", "in_review"];
@@ -205,7 +208,7 @@ export async function listSuppliersForCharity(ctx: CharityContext): Promise<Supp
 export async function startSupplierPayment(
   ctx: CharityContext,
   needId: string,
-  input: { supplierId: string; amount: string; description: string },
+  input: { supplierId: string; amount: string; description: string; confirmRepeat?: boolean },
 ): Promise<{ approveUrl: string }> {
   if (!UUID.test(needId) || !UUID.test(input.supplierId)) throw new SupplierError("Choose a supplier.");
   let amountCents: number;
@@ -253,6 +256,26 @@ export async function startSupplierPayment(
         ),
       );
     if (used + amountCents > need.amountCents) throw new SupplierError(`Payments for this need can't go over its ${formatUsd(need.amountCents)} cost.`);
+
+    // Paying the same supplier the same amount for the same thing twice in a day is usually a
+    // mistake (a slow PayPal page, a second tab): ask first, under the need's lock.
+    if (!input.confirmRepeat) {
+      const [repeat] = await tx
+        .select({ id: supplierPayments.id })
+        .from(supplierPayments)
+        .where(
+          and(
+            eq(supplierPayments.needId, need.id),
+            eq(supplierPayments.supplierId, supplier.id),
+            eq(supplierPayments.amountCents, amountCents),
+            sql`lower(${supplierPayments.description}) = lower(${description})`,
+            gt(supplierPayments.createdAt, new Date(Date.now() - 86_400_000)),
+            or(COMMITTED, and(eq(supplierPayments.status, "created"), gt(supplierPayments.createdAt, new Date(Date.now() - 3_600_000)))),
+          ),
+        )
+        .limit(1);
+      if (repeat) throw new DuplicateSupplierPayment(`You already paid ${supplier.name} ${formatUsd(amountCents)} for "${description}" today.`);
+    }
 
     const [row] = await tx
       .insert(supplierPayments)

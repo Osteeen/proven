@@ -7,7 +7,7 @@ import { toCents } from "@/server/money";
 import { MAX_PROOF_BYTES, ProofError, submitReceipt } from "@/server/proofs/service";
 import { RecipientCheckError, startRecipientCheck } from "@/server/proofs/recipients";
 import { cancelNeed, ReleaseError, requestRelease } from "@/server/releases/service";
-import { SupplierError, completeSupplierPayment, inviteSupplier, refreshInvitedSupplier, startSupplierPayment } from "@/server/suppliers/service";
+import { DuplicateSupplierPayment, SupplierError, completeSupplierPayment, inviteSupplier, refreshInvitedSupplier, startSupplierPayment } from "@/server/suppliers/service";
 
 export type ReleaseFormState = { error?: string; done?: "completed" | "pending_review" | "failed"; amount?: string; kind?: string };
 
@@ -51,7 +51,7 @@ export async function cancelNeedAction(needId: string): Promise<{ error?: string
   try {
     const ok = await cancelNeed({ kind: "charity", ctx }, needId);
     refresh(needId);
-    if (!ok) return { error: "The need is closed, but PayPal didn't confirm every hold was cancelled yet. Any hold left will lapse on its own and donors are never charged for it." };
+    if (!ok) return { error: "The need is closed, but PayPal hasn't confirmed every donor's money is back yet. Anything left goes back on its own - nobody pays." };
     return {};
   } catch (e) {
     if (e instanceof ReleaseError) return { error: e.message };
@@ -79,16 +79,17 @@ export async function uploadReceiptAction(needId: string, _prev: ReceiptUploadSt
   }
 }
 
-export type PaySupplierState = { error?: string; approveUrl?: string; supplierId?: string; amount?: string; description?: string };
+export type PaySupplierState = { error?: string; repeat?: string; approveUrl?: string; supplierId?: string; amount?: string; description?: string };
 
 /** The charity starts paying a connected supplier for its own need; the browser then goes to PayPal to approve. */
 export async function paySupplierAction(needId: string, _prev: PaySupplierState, formData: FormData): Promise<PaySupplierState> {
   const ctx = await requireCharity();
   const input = { supplierId: str(formData.get("supplierId")), amount: str(formData.get("amount")).trim(), description: str(formData.get("description")) };
   try {
-    const { approveUrl } = await startSupplierPayment(ctx, needId, input);
+    const { approveUrl } = await startSupplierPayment(ctx, needId, { ...input, confirmRepeat: formData.get("confirmRepeat") === "1" });
     return { approveUrl };
   } catch (e) {
+    if (e instanceof DuplicateSupplierPayment) return { repeat: e.message, ...input };
     const error = e instanceof SupplierError ? e.message : "Couldn't start the payment. Nothing was paid - try again.";
     if (!(e instanceof SupplierError)) console.error("Supplier payment start failed", e?.constructor?.name);
     return { error, ...input };

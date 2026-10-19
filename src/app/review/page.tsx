@@ -50,7 +50,7 @@ export default async function ReviewPage() {
             {waiting.length === 0 ? "Nothing waiting" : `${waiting.length} ${waiting.length === 1 ? "release" : "releases"} to check`}
           </h1>
           <p className="mt-1 max-w-xl text-sm text-ink-muted">
-            Every delivery release waits here for now, along with new charities&apos; first release and anything above a charity&apos;s limit. Nothing is charged until you approve.
+            Payments that need a person wait here: a new charity&apos;s first, anything over its limit, a price far above market, or proof that&apos;s unclear. Donors aren&apos;t charged until you approve.
           </p>
         </div>
 
@@ -71,9 +71,9 @@ export default async function ReviewPage() {
 
         {withdrawn.length > 0 && (
           <section className="rise-in mt-8" style={{ animationDelay: "65ms" }}>
-            <h2 className="font-serif text-lg text-ink">Proof withdrawn after release</h2>
+            <h2 className="font-serif text-lg text-ink">Proof fell through after payment</h2>
             <p className="mt-1 max-w-2xl text-xs text-ink-muted">
-              Donors were charged more than the supplier payments that still stand - a supplier refunded, the charity disputed a payment, or a supplier was rejected. Check it, and refund donors if the delivery isn&apos;t real.
+              Donors paid more than the supplier payments that still stand: a supplier refunded the charity, a payment was disputed, or a supplier was removed. Check it, and refund donors if the delivery isn&apos;t real.
             </p>
             <ul className="mt-3 space-y-2">
               {withdrawn.map((w) => (
@@ -236,19 +236,20 @@ export default async function ReviewPage() {
             <p className="mt-1 text-xs text-ink-muted">If a delivery turns out to be false, refund the donors from here.</p>
             <ul className="mt-3 divide-y divide-dashed divide-line rounded-[10px] border border-line bg-card">
               {refundable.map((n) => (
-                <li key={n.needId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
-                  <span className="min-w-0">
-                    <span className="text-ink">{n.needTitle}</span>
-                    <span className="block text-xs text-ink-muted">
-                      {n.charityName} - charged {formatUsd(n.chargedCents)}
-                      {n.refundedCents > 0 ? `, refunded ${formatUsd(n.refundedCents)}` : ""}
-                    </span>
-                  </span>
+                <li key={n.needId}>
+                  {/* The whole row opens the need, where the refund is decided. */}
                   <Link
                     href={`/review/needs/${n.needId}`}
-                    className="rounded-full border border-line px-3 py-1 text-xs text-ink transition-colors hover:border-ink-muted"
+                    className="group flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm transition-colors hover:bg-[#fbfaf6]"
                   >
-                    Refund
+                    <span className="min-w-0">
+                      <span className="text-ink group-hover:underline group-hover:underline-offset-4">{n.needTitle}</span>
+                      <span className="block text-xs text-ink-muted">
+                        {n.charityName} - charged {formatUsd(n.chargedCents)}
+                        {n.refundedCents > 0 ? `, refunded ${formatUsd(n.refundedCents)}` : ""}
+                      </span>
+                    </span>
+                    <span className="rounded-full border border-line px-3 py-1 text-xs text-ink transition-colors group-hover:border-ink-muted">Refund</span>
                   </Link>
                 </li>
               ))}

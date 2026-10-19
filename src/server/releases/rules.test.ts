@@ -107,6 +107,13 @@ describe("finalReleaseBlock", () => {
   });
   it("needs a second check", () => {
     expect(finalReleaseBlock({ ...ok, passedKinds: ["supplier_paypal_payment"] }, 100)).toMatch(/second check/);
+    // A promised check waiting for a person opens the release - and it can never skip review.
+    const inReview = { ...ok, passedKinds: ["supplier_paypal_payment"], reviewKinds: ["receipt"], requiredSecondChecks: ["receipt"], openIssues: 1 };
+    expect(finalReleaseBlock(inReview, 100)).toBeNull();
+    expect(proofChecked(inReview)).toBe(false);
+    // ...but only a check this need promised, and never one that failed (failed kinds are in neither list).
+    expect(finalReleaseBlock({ ...inReview, reviewKinds: ["recipient_confirmation"] }, 100)).toMatch(/second check/);
+    expect(finalReleaseBlock({ ...inReview, reviewKinds: [] }, 100)).toMatch(/second check/);
   });
   it("never releases more than was paid to suppliers, counting earlier releases", () => {
     expect(finalReleaseBlock(ok, 20000)).toBeNull();

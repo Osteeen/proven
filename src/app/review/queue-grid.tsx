@@ -52,35 +52,37 @@ function checks(proofs: ProofView[]) {
  */
 export function QueueGrid({ rows }: { rows: QueueRow[] }) {
   const [api, setApi] = useState<GridApi | null>(null);
+  // Six columns fit the page without sideways scrolling; trust, held, checks and dates are one
+  // click away in the Columns panel (and shown in each opened row).
   const columnDefs = useMemo<ColDef<QueueRow>[]>(
     () => [
-      { field: "needTitle", headerName: "Need", cellRenderer: "agGroupCellRenderer", minWidth: 280, flex: 2, filter: "agTextColumnFilter", pinned: "left" },
-      { field: "charityName", headerName: "Charity", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 240 },
-      { field: "trustTier", headerName: "Trust", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 120 },
+      { field: "needTitle", headerName: "Need", cellRenderer: "agGroupCellRenderer", minWidth: 220, flex: 2, filter: "agTextColumnFilter", pinned: "left" },
+      { field: "charityName", headerName: "Charity", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 170 },
+      { field: "trustTier", headerName: "Trust", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 120, hide: true },
       {
         field: "kind",
         headerName: "Type",
         enableRowGroup: true,
         filter: "agSetColumnFilter",
         valueFormatter: (p) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery release"),
-        minWidth: 180,
+        minWidth: 150,
         filterParams: { valueFormatter: (p: ValueFormatterParams) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery release") },
       },
-      { field: "amountCents", headerName: "Amount", valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", sort: "desc", minWidth: 150 },
-      { field: "heldCents", headerName: "Held now", valueFormatter: money, type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", minWidth: 150 },
-      { field: "reviewReason", headerName: "Why a person", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 300, flex: 2, valueFormatter: (p) => (p.node?.group ? "" : ((p.value as string) ?? "Needs review")) },
+      { field: "amountCents", headerName: "Amount", valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", sort: "desc", minWidth: 120 },
+      { field: "heldCents", headerName: "Held now", valueFormatter: money, type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", minWidth: 130, hide: true },
+      { field: "reviewReason", headerName: "Why a person", enableRowGroup: true, filter: "agSetColumnFilter", minWidth: 200, flex: 2, valueFormatter: (p) => (p.node?.group ? "" : ((p.value as string) ?? "Needs review")) },
       {
         colId: "price",
         headerName: "Market price",
         enableRowGroup: true,
         filter: "agSetColumnFilter",
-        minWidth: 170,
+        minWidth: 140,
         valueGetter: (p) => (p.data ? PRICE_SHORT[p.data.price?.verdict ?? "unknown"] : ""),
         cellClass: (p) => (p.data?.price?.verdict === "well_above" || p.data?.price?.verdict === "above" ? "text-held-text font-medium" : ""),
       },
-      { colId: "checks", headerName: "Checks", valueGetter: (p) => (p.data ? checks(p.data.proofs) : ""), filter: "agTextColumnFilter", minWidth: 190 },
-      { field: "deadline", headerName: "Deliver by", valueFormatter: (p) => (p.value ? day(p.value as string) : ""), filter: "agDateColumnFilter", minWidth: 140 },
-      { field: "createdAt", headerName: "Asked", valueFormatter: (p) => (p.value ? day(p.value as string) : ""), minWidth: 120 },
+      { colId: "checks", headerName: "Checks", valueGetter: (p) => (p.data ? checks(p.data.proofs) : ""), filter: "agTextColumnFilter", minWidth: 160, hide: true },
+      { field: "deadline", headerName: "Deliver by", valueFormatter: (p) => (p.value ? day(p.value as string) : ""), filter: "agDateColumnFilter", minWidth: 120, hide: true },
+      { field: "createdAt", headerName: "Asked", valueFormatter: (p) => (p.value ? day(p.value as string) : ""), minWidth: 120, hide: true },
     ],
     [],
   );

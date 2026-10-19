@@ -56,6 +56,14 @@ function PayForm({ needId, suppliers, remainingCents }: { needId: string; suppli
   const [amount, setAmount] = useState(state.amount ?? "");
   const [description, setDescription] = useState(state.description ?? "");
   const leaving = Boolean(state.approveUrl);
+  // The repeat question shows for this answer only; changing the form or saying no clears it.
+  const [repeatDismissed, setRepeatDismissed] = useState(false);
+  const [lastState, setLastState] = useState(state);
+  if (state !== lastState) {
+    setLastState(state);
+    setRepeatDismissed(false);
+  }
+  const repeatAsked = Boolean(state.repeat) && !repeatDismissed && !pending;
   const chosen = suppliers.find((s) => s.id === supplierId);
 
   useEffect(() => {
@@ -99,12 +107,27 @@ function PayForm({ needId, suppliers, remainingCents }: { needId: string; suppli
           {state.error}
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={pending || leaving} className="rounded-full bg-ink px-5 py-2.5 text-sm text-paper transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40">
-          {leaving ? "Opening PayPal..." : pending ? "Starting payment..." : "Pay with PayPal"}
-        </button>
-        <p className="min-w-0 flex-1 text-xs text-ink-muted">You approve it on PayPal from your charity&apos;s own account. The money goes to the supplier, not to Proven.</p>
-      </div>
+      {repeatAsked ? (
+        // Asked in place, in this form: the same payment again is usually a mistake.
+        <div role="alert" className="rise-in space-y-3 rounded-md border border-held/40 bg-held-bg px-4 py-3 text-sm text-held-text">
+          <p>{state.repeat} Pay again?</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" name="confirmRepeat" value="1" disabled={pending || leaving} className="rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-40">
+              {leaving ? "Opening PayPal..." : pending ? "Starting payment..." : "Yes, pay again"}
+            </button>
+            <button type="button" onClick={() => setRepeatDismissed(true)} disabled={pending || leaving} className="text-sm underline underline-offset-4">
+              No, don&apos;t pay
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={pending || leaving} className="rounded-full bg-ink px-5 py-2.5 text-sm text-paper transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40">
+            {leaving ? "Opening PayPal..." : pending ? "Starting payment..." : "Pay with PayPal"}
+          </button>
+          <p className="min-w-0 flex-1 text-xs text-ink-muted">You approve it on PayPal from your charity&apos;s own account. The money goes to the supplier, not to Proven.</p>
+        </div>
+      )}
     </form>
   );
 }

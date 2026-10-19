@@ -145,6 +145,15 @@ run("supplier payments (local DB, PayPal mocked)", () => {
     return p!.id;
   };
 
+  it("asks before paying the same supplier the same amount for the same thing again today", async () => {
+    const needId = await freshNeed();
+    await startSupplierPayment(a, needId, { supplierId: connected, amount: "40", description: "Fleece blankets" });
+    await expect(startSupplierPayment(a, needId, { supplierId: connected, amount: "40", description: "fleece  blankets" })).rejects.toThrow(/already paid .* today/);
+    // A different amount or purchase is fine, and so is a confirmed repeat.
+    await startSupplierPayment(a, needId, { supplierId: connected, amount: "41", description: "Fleece blankets" });
+    await startSupplierPayment(a, needId, { supplierId: connected, amount: "40", description: "Fleece blankets", confirmRepeat: true });
+  });
+
   it("refuses to pay from another charity's need", async () => {
     await expect(startSupplierPayment(b, a.needId, { supplierId: connected, amount: "10", description: "Blankets" })).rejects.toThrow("Need not found.");
   });

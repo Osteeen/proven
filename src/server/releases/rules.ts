@@ -51,6 +51,8 @@ export type ReleaseProof = {
   supplierPaidCents: number;
   /** Kinds of other proof that currently pass. */
   passedKinds: readonly string[];
+  /** Kinds of other proof waiting for a person (in doubt, not failed). Optional: older callers have none. */
+  reviewKinds?: readonly string[];
   /** The second checks this need promised donors (its required proof, less the supplier payment). */
   requiredSecondChecks: readonly string[];
   /** Proofs on the need that failed, wait for a person, or are still being checked. */
@@ -69,7 +71,11 @@ export type ReleaseProof = {
 export function finalReleaseBlock(p: ReleaseProof, amountCents: number): string | null {
   if (!p.requiresSupplierPayment) return null;
   if (p.supplierPaidCents <= 0) return "Pay the supplier with PayPal through Proven first - PayPal's record of that payment is the main proof.";
-  if (!countedSecondChecks(p).length) return "Add a second check that passes - one of the checks this need asks for.";
+  // A promised check that passed opens the release; so does one waiting for a person (Osteen,
+  // Oct 19) - that release always goes to review (proofChecked is false while anything is open),
+  // so the person decides. A check that failed outright never counts.
+  if (!countedSecondChecks(p).length && !countedSecondChecks({ ...p, passedKinds: p.reviewKinds ?? [] }).length)
+    return "Add a second check that passes - one of the checks this need asks for.";
   const room = finalReleaseRoomCents(p);
   if (amountCents > room) return `You can release up to ${usd(room)} - what you paid suppliers with PayPal, less what was already released.`;
   return null;
