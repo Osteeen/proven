@@ -160,3 +160,11 @@ Built with Next.js 16, React 19, TypeScript, PostgreSQL and Drizzle ORM.
 - **The charity pays its supplier first.** Paying the supplier straight from released donor money is the next step, and works best inside PayPal.
 - **Price checks depend on shop coverage.** Channel3 covers hardware and outdoor goods well (tarps, sleeping mats, fleece blankets). Bulk or assembled relief items (hygiene kits) often get no verdict. Items sold in packs can be priced per piece by the AI while the need is priced per pack, which gives no verdict - for example water purification tablets.
 - **Messages are simulated.** Emails and texts to suppliers and people helped appear on a demo messages page instead of being sent.
+
+---
+
+## Licence
+
+Proven is released under the [MIT Licence](LICENSE).
+
+It depends on third-party packages under their own licences, including **AG Grid Enterprise** (used here without a licence key, so it shows a trial watermark) and the **Bryntum Scheduler public trial**. Using Proven's code does not grant a licence to those packages.
