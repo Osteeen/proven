@@ -8,20 +8,20 @@ export const dynamic = "force-dynamic";
 
 // The real order of events for every need.
 const STEPS = [
-  { n: "01", name: "Held", color: "border-held text-held", body: "You give to a need. PayPal holds the amount on your account - nothing is taken yet." },
+  { n: "01", name: "Held", color: "border-held text-held", body: "You give to a need. PayPal holds it. Nothing is taken yet." },
   {
     n: "02",
     name: "Bought",
     color: "border-ink text-ink",
-    body: "The charity pays its supplier through Proven with PayPal, so there's a record of who was paid and how much.",
+    body: "The charity pays its supplier with PayPal, through Proven.",
   },
   {
     n: "03",
     name: "Confirmed",
     color: "border-review text-review",
-    body: "The delivery is confirmed by the receipt, the supplier, or a few of the people who got the help.",
+    body: "A receipt, the supplier or people helped confirm delivery.",
   },
-  { n: "04", name: "Settled", color: "border-proven text-proven", body: "You're charged only what was spent. If delivery can't be proven, the hold is cancelled and you pay nothing." },
+  { n: "04", name: "Settled", color: "border-proven text-proven", body: "You pay only your share of what was spent - or nothing." },
 ];
 
 /**
@@ -32,28 +32,28 @@ const DEMO_ROLES = [
   {
     who: "Donor",
     title: "Give to a need",
-    body: "Choose a need and approve with a PayPal sandbox account - the login is in the project README. Your money is held, not taken.",
+    body: "Pick a need and approve with PayPal. Your money is held, not taken.",
     href: "/needs",
     action: "See needs to fund",
   },
   {
     who: "Charity",
     title: "Buy, prove, get paid",
-    body: "Pay the supplier through Proven, add the receipt, ask the people helped to confirm, then release only what you spent.",
+    body: "Pay the supplier, add the receipt, then get paid what you spent.",
     role: "charity" as const,
     action: "Open as the charity",
   },
   {
-    who: "Supplier and people helped",
+    who: "Supplier, recipients",
     title: "Confirm it arrived",
-    body: "Proven emails the supplier and texts a few of the people helped to ask if it arrived. Read their messages and answer for them.",
+    body: "Proven asks if it arrived. Read the messages and answer for them.",
     href: "/demo/inbox",
     action: "Open their messages",
   },
   {
     who: "Reviewer",
     title: "Step in when in doubt",
-    body: "Verify new suppliers, decide on anything flagged, and refund donors if a delivery turns out to be false.",
+    body: "Check new suppliers, decide anything flagged, refund if faked.",
     role: "reviewer" as const,
     action: "Open as the reviewer",
   },
@@ -72,8 +72,8 @@ export default async function Home() {
             Give to disaster relief. You&apos;re only charged when delivery is proven.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft">
-            When you give, PayPal holds your money instead of taking it. The charity buys what&apos;s needed through PayPal,
-            and you&apos;re charged only once the delivery is confirmed.
+            You give. PayPal holds your money. The charity buys the goods and proves they arrived. Only then do you pay -
+            and only for what was spent.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-5">
             <PrimaryLink href="#needs">See needs to fund</PrimaryLink>
@@ -106,7 +106,7 @@ export default async function Home() {
           <section id="demo" className="rise-in mt-20 scroll-mt-6" style={{ animationDelay: "420ms" }}>
             <h2 className="font-serif text-2xl text-ink">Try the demo</h2>
             <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-              Try every side of Proven, in the order things happen. Each opens in a new tab. It all runs on PayPal&apos;s sandbox, so no real money moves.
+              Play every part of Proven, in the order things happen. Each opens in a new tab. It runs on PayPal&apos;s test system, so no real money moves.
             </p>
             <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {DEMO_ROLES.map((r, i) => (
@@ -139,7 +139,7 @@ export default async function Home() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-serif text-2xl text-ink">Needs to fund</h2>
-              <p className="mt-1 text-sm text-ink-muted">Most urgent first. Each shows what it costs, when it must be delivered, and what has to be confirmed before you&apos;re charged.</p>
+              <p className="mt-1 text-sm text-ink-muted">Most urgent first. Each shows the cost, the deadline, and what must be proven before you pay.</p>
             </div>
             {total > needs.length && (
               <Link href="/needs" className="text-sm text-ink underline decoration-line underline-offset-4 transition-colors hover:decoration-ink">
@@ -161,7 +161,7 @@ export default async function Home() {
         </section>
 
         <footer className="mt-20 border-t border-line pt-6 text-xs text-ink-muted">
-          Proven runs on the PayPal sandbox for this hackathon build. No real money moves.
+          This is a hackathon build on PayPal&apos;s test system. No real money moves.
         </footer>
       </main>
     </>

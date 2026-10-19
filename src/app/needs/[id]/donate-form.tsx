@@ -77,7 +77,7 @@ export function DonateForm({
         )}
         <span className="relative">{pending ? "Opening PayPal..." : submitLabel}</span>
       </motion.button>
-      <p className="text-center text-xs text-ink-muted">PayPal holds your donation. You&apos;re charged only if delivery is proven.</p>
+      <p className="text-center text-xs text-ink-muted">PayPal holds your money. You only pay if delivery is proven.</p>
     </form>
   );
 }

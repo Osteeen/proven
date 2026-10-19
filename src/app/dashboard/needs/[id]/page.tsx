@@ -45,9 +45,9 @@ const PAID_NOTICE: Record<string, { tone: string; text: string }> = {
 };
 
 const RELEASED_NOTICE: Record<string, { tone: string; text: string }> = {
-  completed: { tone: "border-proven/30 bg-proven-bg text-proven-text", text: "Released. PayPal has paid it to your account - the details are below." },
-  pending_review: { tone: "border-review/30 bg-review-bg text-review-text", text: "Sent for review. A reviewer checks it before PayPal pays it - nothing is charged until then." },
-  failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", text: "PayPal didn't finish this release. Nothing extra was charged - a reviewer can retry it." },
+  completed: { tone: "border-proven/30 bg-proven-bg text-proven-text", text: "Paid. PayPal has sent it to your account - the details are below." },
+  pending_review: { tone: "border-review/30 bg-review-bg text-review-text", text: "Sent to a reviewer. They check it before PayPal pays you. Donors aren't charged until then." },
+  failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", text: "PayPal didn't finish this payment. Nobody was charged extra - a reviewer can try again." },
 };
 
 const PAYMENT_STATUS: Record<string, { tone: "held" | "proven" | "void" | "review" | "neutral"; label: string }> = {
@@ -161,9 +161,9 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
 
         <dl className="mt-7 grid grid-cols-3 gap-3">
           {[
-            { label: "Held, not charged", cents: n.heldCents, accent: "text-held" },
+            { label: "Held by PayPal", cents: n.heldCents, accent: "text-held" },
             { label: "Paid to you", cents: n.chargedCents - n.refundedCents, accent: "text-proven" },
-            { label: "Released to donors", cents: n.releasedCents, accent: "text-ink-muted" },
+            { label: "Returned to donors", cents: n.releasedCents, accent: "text-ink-muted" },
           ].map((m, i) => (
             <div key={m.label} className="rise-in rounded-[10px] bg-[#efece4] px-4 py-3" style={{ animationDelay: `${60 + i * 60}ms` }}>
               <dt className="text-xs text-ink-muted">{m.label}</dt>
@@ -185,16 +185,16 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
         {n.inFlight && (
           <p className="mt-8 rounded-[10px] border border-review/30 bg-review-bg px-4 py-3 text-sm text-review-text" role="status">
             {n.inFlight.status === "pending_review"
-              ? `A release of ${formatUsd(n.inFlight.amountCents)} is waiting for a reviewer. Nothing is charged until it's approved.`
+              ? `Your request for ${formatUsd(n.inFlight.amountCents)} is waiting for a reviewer. Donors aren't charged until it's approved.`
               : n.inFlight.status === "failed"
-                ? `A release of ${formatUsd(n.inFlight.amountCents)} didn't finish on PayPal. A reviewer will retry it - nothing is charged twice.`
-                : `A release of ${formatUsd(n.inFlight.amountCents)} is being sent to PayPal.`}
+                ? `Your request for ${formatUsd(n.inFlight.amountCents)} didn't finish on PayPal. A reviewer will try again - nobody is charged twice.`
+                : `PayPal is paying your request for ${formatUsd(n.inFlight.amountCents)} now.`}
           </p>
         )}
 
         {showBooking && (
           <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "180ms" }}>
-            <h2 className="font-serif text-xl text-ink">Pay the booking</h2>
+            <h2 className="font-serif text-xl text-ink">Get money to book the goods</h2>
             <p className="mb-5 mt-1 text-sm text-ink-muted">
               Take up to {formatUsd(n.advanceLeftCents)} now to book the supplier. The rest is released after delivery.
             </p>
@@ -205,7 +205,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
         {(canPaySupplier || payments.length > 0) && (
           <section className="rise-in mt-8" style={{ animationDelay: "200ms" }}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-serif text-lg text-ink">Pay suppliers with PayPal</h2>
+              <h2 className="font-serif text-lg text-ink">Pay your supplier with PayPal</h2>
               {supplierPaid > 0 && (
                 <p className="font-mono text-xs text-proven-text">
                   Paid to suppliers: <Money cents={supplierPaid} />
@@ -294,8 +294,8 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
 
         {open && (
           <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "230ms" }}>
-            <h2 className="font-serif text-xl text-ink">Release money</h2>
-            <p className="mt-1 text-sm text-ink-muted">PayPal pays you directly from donors&apos; holds. Only what you release is charged - the rest is cancelled.</p>
+            <h2 className="font-serif text-xl text-ink">Get paid</h2>
+            <p className="mt-1 text-sm text-ink-muted">PayPal pays you straight from donors&apos; held money. Donors only pay what you ask for - the rest goes back to them.</p>
             {releaseProof.requiresSupplierPayment && (
               <ul className="mt-4 space-y-2 text-sm">
                 <Check done={releaseProof.supplierPaidCents > 0}>
@@ -309,29 +309,29 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
                 </Check>
                 <Check done={Boolean(secondCheck)}>
                   {secondCheck
-                    ? `Second check passed - ${(PROOF_LABELS[secondCheck.kind as ProofType] ?? secondCheck.kind).toLowerCase()}`
-                    : `A second check that passes - ${promised.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(" or ")} (above)`}
+                    ? `One more check passed - ${(PROOF_LABELS[secondCheck.kind as ProofType] ?? secondCheck.kind).toLowerCase()}`
+                    : `One more check that passes - ${promised.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(" or ")} (above)`}
                 </Check>
               </ul>
             )}
             {gateOpen && !proofOk && (
               <p className="mt-3 rounded-md border border-review/30 bg-review-bg px-3 py-2 text-xs text-review-text">
                 {releaseProof.openIssues > 0
-                  ? "Some proof on this need didn't pass or is waiting for a person, so a Proven reviewer checks this release before anything is charged."
+                  ? "Some proof didn't pass or is waiting for a person, so a Proven reviewer checks this before donors are charged."
                   : promisedLeft.length === 0
-                    ? "The supplier's own confirmation can't stand alone, so a Proven reviewer checks this release first."
-                  : `Not every check you promised has passed yet (${promisedLeft.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(", ")}), so a Proven reviewer checks this release first.`}
+                    ? "The supplier's word alone isn't enough, so a Proven reviewer checks this first."
+                  : `Some checks you promised haven't passed yet (${promisedLeft.map((k) => (PROOF_LABELS[k as ProofType] ?? k).toLowerCase()).join(", ")}), so a Proven reviewer checks this first.`}
               </p>
             )}
             <div className="mt-5">
               {n.inFlight ? (
-                <p className="text-sm text-ink-muted">A release is already in progress - see above.</p>
+                <p className="text-sm text-ink-muted">A payment request is already in progress - see above.</p>
               ) : n.heldCents === 0 ? (
-                <p className="text-sm text-ink-muted">Nothing is held yet. Share the public page - you can release money once donors hold some.</p>
+                <p className="text-sm text-ink-muted">No donations yet. Share the public page - you can ask to be paid once donors give.</p>
               ) : releaseProof.requiresSupplierPayment && !gateOpen ? (
-                <p className="text-sm text-ink-muted">Release unlocks when both checks above pass.</p>
+                <p className="text-sm text-ink-muted">You can ask to be paid once both checks above pass.</p>
               ) : releaseProof.requiresSupplierPayment && roomCents === 0 ? (
-                <p className="text-sm text-ink-muted">Everything paid to suppliers has been released. Pay the supplier for more to release more.</p>
+                <p className="text-sm text-ink-muted">You&apos;ve been paid back everything you paid suppliers. Pay a supplier again to ask for more.</p>
               ) : (
                 <ReleaseForm kind="final" {...releaseProps} />
               )}
@@ -348,7 +348,7 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
                 return (
                   <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
                     <span className="min-w-0">
-                      <span className="text-ink">{r.kind === "advance" ? "Booking payment" : "Delivery release"}</span>
+                      <span className="text-ink">{r.kind === "advance" ? "Booking payment" : "Delivery payment"}</span>
                       <span className="ml-2 text-xs text-ink-muted">{formatDate(r.createdAt)}</span>
                       {r.reviewReason && r.status === "pending_review" && <span className="block text-xs text-ink-muted">{r.reviewReason}</span>}
                       {r.note && <span className="block truncate text-xs text-ink-muted">{r.note}</span>}
@@ -398,11 +398,11 @@ export default async function ManageNeedPage({ params, searchParams }: { params:
               title="Close this need?"
               body={
                 <>
-                  {n.heldCents > 0 ? `${formatUsd(n.heldCents)} held for ${liveDonors} ${liveDonors === 1 ? "donor" : "donors"} is released and never charged.` : "Nothing is held right now."}
+                  {n.heldCents > 0 ? `${formatUsd(n.heldCents)} held for ${liveDonors} ${liveDonors === 1 ? "donor" : "donors"} goes back to them. Nobody is charged.` : "Nothing is held right now."}
                   {n.chargedCents - n.refundedCents > 0 ? ` The ${formatUsd(n.chargedCents - n.refundedCents)} already paid for the booking stays paid.` : ""} Donors get an email. This can&apos;t be undone.
                 </>
               }
-              confirmLabel="Close and release holds"
+              confirmLabel="Close and return donations"
               pendingLabel="Closing..."
               action={cancelNeedAction.bind(null, n.id)}
             />

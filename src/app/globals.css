@@ -40,6 +40,11 @@
   --duration-slow: 480ms;
 }
 
+/* In-page links ("See needs to fund", "Try the demo") glide to their section. Reduced motion turns this off below. */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

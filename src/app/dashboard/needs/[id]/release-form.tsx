@@ -68,9 +68,9 @@ export function ReleaseForm({
           state.done === "completed" ? "border-proven/30 bg-proven-bg text-proven-text" : state.done === "pending_review" ? "border-review/30 bg-review-bg text-review-text" : "border-[#f09595] bg-[#fcebeb] text-[#791f1f]"
         }`}
       >
-        {state.done === "completed" && "Released. PayPal has paid it to your account - the details are below."}
-        {state.done === "pending_review" && "Sent for review. A reviewer checks it before PayPal pays it - nothing is charged until then."}
-        {state.done === "failed" && "PayPal didn't finish this release. Nothing extra was charged - a reviewer can retry it."}
+        {state.done === "completed" && "Paid. PayPal has sent it to your account - the details are below."}
+        {state.done === "pending_review" && "Sent to a reviewer. They check it before PayPal pays you. Donors aren't charged until then."}
+        {state.done === "failed" && "PayPal didn't finish this payment. Nobody was charged extra - a reviewer can try again."}
       </motion.div>
     );
   }
@@ -101,21 +101,21 @@ export function ReleaseForm({
           {tooMuch ? (
             <motion.p key="over" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: [0, -5, 5, -3, 0] }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="text-[#a32d2d]">
               {kind === "advance"
-                ? `Up front you can take up to ${formatUsd(max)}. The rest is released after delivery.`
+                ? `You can take up to ${formatUsd(max)} now. The rest comes after delivery.`
                 : capByRule
-                  ? `You can release up to ${formatUsd(max)} - what you paid suppliers with PayPal, less what was already released.`
+                  ? `You can ask for up to ${formatUsd(max)} - what you paid suppliers with PayPal, less what you've already been paid.`
                   : `Only ${formatUsd(max)} is held for this need.`}
             </motion.p>
           ) : amountCents ? (
             <motion.div key="ok" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-ink-soft">
-                  {donorCount === 1 ? "Your donor is" : `${donorCount} donors are`} charged {pct}% of what they hold
+                  {donorCount === 1 ? "Your donor pays" : `${donorCount} donors each pay`} {pct}% of what they gave
                 </span>
                 <span className="font-mono text-proven">{formatUsd(amountCents)}</span>
               </div>
               <div className="mt-1 flex items-baseline justify-between gap-4">
-                <span className="text-ink-muted">{kind === "advance" ? "Still held until delivery" : "Never charged - PayPal releases it"}</span>
+                <span className="text-ink-muted">{kind === "advance" ? "Still held until delivery" : "Goes back to donors"}</span>
                 <span className="font-mono text-ink-muted">{formatUsd(heldCents - amountCents)}</span>
               </div>
               {review && <p className="mt-2 text-xs text-review-text">A reviewer checks this first: {review.toLowerCase()}.</p>}
@@ -123,8 +123,8 @@ export function ReleaseForm({
           ) : (
             <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-ink-muted">
               {kind === "advance"
-                ? "Enter the booking cost. It's taken from every donor's hold in proportion."
-                : "Enter what you spent. Donors are charged that, in proportion, and the rest of every hold is cancelled."}
+                ? "Enter the booking cost. Each donor pays a fair share of it."
+                : "Enter what you spent. Each donor pays a fair share of it, and the rest goes back to them."}
             </motion.p>
           )}
         </AnimatePresence>
@@ -146,7 +146,7 @@ export function ReleaseForm({
         disabled={pending || !amountCents || tooMuch}
         className="rounded-full bg-ink px-5 py-2.5 text-sm text-paper transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40"
       >
-        {pending ? "Releasing..." : kind === "advance" ? "Release booking payment" : "Release and close"}
+        {pending ? "Asking PayPal..." : kind === "advance" ? "Get booking money" : "Get paid and close"}
       </button>
     </form>
   );

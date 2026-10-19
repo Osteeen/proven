@@ -54,13 +54,13 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
 
           <h2 className="mt-10 font-serif text-xl text-ink">How your money is protected</h2>
           <ol className="mt-3 space-y-2 text-sm leading-relaxed text-ink-soft">
-            <li>1. When you give, PayPal holds the amount on your account. You are not charged.</li>
+            <li>1. When you give, PayPal holds your money. Nothing is taken yet.</li>
             <li>
               2. The charity has until {formatDate(need.deadline)} to deliver and prove it with:{" "}
               {need.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(", ")}.
             </li>
-            <li>3. If at least two checks agree, you&apos;re charged only what was actually spent.</li>
-            <li>4. If it isn&apos;t proven in time, the hold is cancelled and you&apos;re never charged.</li>
+            <li>3. Once it&apos;s proven, you pay only your share of what was actually spent.</li>
+            <li>4. If it isn&apos;t proven in time, your money is released. You pay nothing.</li>
           </ol>
           {/* Donors see the check only when it reassures: anything else is for the charity and reviewers. */}
           {price && price.status === "checked" && price.verdict === "in_line" && price.comparableCount >= MIN_COMPARABLES_FOR_DONORS && (
@@ -78,7 +78,7 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
             <dd className="text-right"><AnimatedMoney cents={need.heldCents} delay={0.2} /></dd>
             {reserved > 0 && (
               <>
-                <dt className="text-ink-muted">Waiting on PayPal</dt>
+                <dt className="text-ink-muted">Being approved on PayPal</dt>
                 <dd className="text-right"><Money cents={reserved} /></dd>
               </>
             )}
@@ -86,8 +86,8 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
             <dd className="text-right">{need.donorCount}</dd>
             <dt className="text-ink-muted">Deliver by</dt>
             <dd className="text-right">{formatDate(need.deadline)}</dd>
-            <dt className="text-ink-muted">Release</dt>
-            <dd className="text-right">{need.fundingModel === "staged" ? "Part on booking, rest on delivery" : "After delivery"}</dd>
+            <dt className="text-ink-muted">Charity is paid</dt>
+            <dd className="text-right">{need.fundingModel === "staged" ? "Part when booked, rest when delivered" : "After delivery"}</dd>
           </dl>
           <div className="mt-5">
             <ProgressBar pct={pct} className="h-1.5" delay={0.3} />
@@ -102,7 +102,7 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
           ) : need.status === "open" ? (
             <div className="rise-in mt-5">
               <p className="font-serif text-lg text-ink">This need is covered</p>
-              <p className="mt-1 text-sm text-ink-muted">Every dollar is held or waiting on PayPal. Thank you - these still need help:</p>
+              <p className="mt-1 text-sm text-ink-muted">Every dollar is already given. Thank you - these still need help:</p>
               <OtherNeeds excludeId={need.id} title="" />
             </div>
           ) : (
