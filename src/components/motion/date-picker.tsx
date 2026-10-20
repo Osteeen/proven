@@ -244,7 +244,7 @@ export function DatePicker({
 
             <div className="mt-2 flex items-center gap-2 border-t border-dashed border-line px-1 pt-2.5 text-xs text-ink-muted">
               <span className="inline-block h-2.5 w-4 rounded-full bg-held-bg" aria-hidden="true" />
-              Dates a donor&apos;s PayPal hold can cover
+              Dates PayPal can hold a donor&apos;s money for
             </div>
           </motion.div>
         )}

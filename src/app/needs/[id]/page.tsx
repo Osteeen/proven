@@ -5,6 +5,8 @@ import { PROOF_LABELS, type ProofType } from "@/server/needs/input";
 import { getPublicNeed } from "@/server/needs/repo";
 import { formatUsd } from "@/server/money";
 import { DonateForm } from "./donate-form";
+import { demoLoginEnabled } from "@/server/auth/demo-login";
+import { DEMO_DONOR_LOGIN } from "@/server/demo/judge-login";
 import { startDonationAction } from "./actions";
 import { OtherNeeds } from "@/components/other-needs";
 import { MIN_DONATION_CENTS, remainingForNeed, reservedForNeed } from "@/server/donations/service";
@@ -60,7 +62,7 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
               {need.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(", ")}.
             </li>
             <li>3. Once it&apos;s proven, you pay only your share of what was actually spent.</li>
-            <li>4. If it isn&apos;t proven in time, your money is released. You pay nothing.</li>
+            <li>4. If it isn&apos;t proven in time, your money goes back to you. You pay nothing.</li>
           </ol>
           {/* Donors see the check only when it reassures: anything else is for the charity and reviewers. */}
           {price && price.status === "checked" && price.verdict === "in_line" && price.comparableCount >= MIN_COMPARABLES_FOR_DONORS && (
@@ -86,8 +88,8 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
             <dd className="text-right">{need.donorCount}</dd>
             <dt className="text-ink-muted">Deliver by</dt>
             <dd className="text-right">{formatDate(need.deadline)}</dd>
-            <dt className="text-ink-muted">Charity is paid</dt>
-            <dd className="text-right">{need.fundingModel === "staged" ? "Part when booked, rest when delivered" : "After delivery"}</dd>
+            <dt className="text-ink-muted">Charity gets paid</dt>
+            <dd className="text-right">{need.fundingModel === "staged" ? "Part paid when booked, rest after delivery" : "After delivery"}</dd>
           </dl>
           <div className="mt-5">
             <ProgressBar pct={pct} className="h-1.5" delay={0.3} />
@@ -98,7 +100,7 @@ export default async function NeedPage({ params, searchParams }: { params: Promi
             </p>
           )}
           {need.status === "open" && remaining >= MIN_DONATION_CENTS ? (
-            <DonateForm action={startDonationAction.bind(null, need.id)} remainingCents={remaining} remainingLabel={formatUsd(remaining)} />
+            <DonateForm action={startDonationAction.bind(null, need.id)} remainingCents={remaining} remainingLabel={formatUsd(remaining)} testLogin={demoLoginEnabled() ? DEMO_DONOR_LOGIN : undefined} />
           ) : need.status === "open" ? (
             <div className="rise-in mt-5">
               <p className="font-serif text-lg text-ink">This need is covered</p>

@@ -18,7 +18,7 @@ describe("gift emails", () => {
   it("first gift: says held, not charged, and carries the private link", () => {
     const m = giftHeldEmail(facts);
     expect(m.kind).toBe("gift_held");
-    expect(m.subject).toBe("Your $100.00 for 50 blankets is held - you haven't been charged");
+    expect(m.subject).toBe("PayPal is holding your $100.00 for 50 blankets - you haven't paid");
     expect(m.text).toContain(facts.link);
     expect(m.text).toContain("October 20");
     expect(m.text).toContain("November 7");
@@ -27,7 +27,7 @@ describe("gift emails", () => {
   it("top-up: shows the added amount and the new total", () => {
     const m = giftAddedEmail({ ...facts, amountCents: 2500 });
     expect(m.kind).toBe("gift_added");
-    expect(m.subject).toBe("You added $25.00 - $125.00 now held for 50 blankets");
+    expect(m.subject).toBe("You added $25.00 - PayPal now holds $125.00 for 50 blankets");
     expect(m.text).toContain(facts.link);
   });
 

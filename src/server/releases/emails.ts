@@ -44,24 +44,24 @@ export async function emailDonorsAfterSettlement(needId: string, outcome: "prove
       const never = total - charged;
       const proven = outcome === "proven";
       const subject = proven
-        ? `Delivery proven - you were charged ${formatUsd(charged)} for ${first.needTitle}`
+        ? `Delivery proven - you paid ${formatUsd(charged)} for ${first.needTitle}`
         : charged > 0
-          ? `${first.needTitle} was closed - ${formatUsd(never)} was never charged`
-          : `${first.needTitle} wasn't proven - you were never charged`;
+          ? `${first.needTitle} was closed - ${formatUsd(never)} goes back to you`
+          : `${first.needTitle} wasn't proven - you never paid`;
       const lines = proven
         ? [
             `${first.charityName} delivered "${first.needTitle}" and it checked out.`,
             "",
             `Charged: ${formatUsd(charged)} of your ${formatUsd(total)} - only what was actually spent.`,
-            never > 0 ? `Never charged: ${formatUsd(never)}. PayPal has released it.` : "Your whole donation was used.",
+            never > 0 ? `Not charged: ${formatUsd(never)}. It goes back to you through PayPal.` : "Your whole donation was used.",
             ...(impact.length ? ["", "What your donation did - and how we know:", ...impact.map((f) => `- ${f}`)] : []),
           ]
         : [
             `"${first.needTitle}" from ${first.charityName} was closed without proof of delivery.`,
             "",
             charged > 0
-              ? `You were charged ${formatUsd(charged)} earlier for the booking. The other ${formatUsd(never)} was never charged - PayPal has released it.`
-              : `You were never charged. PayPal has released your ${formatUsd(total)} hold.`,
+              ? `You paid ${formatUsd(charged)} earlier for the booking. The other ${formatUsd(never)} was never taken - it goes back to you through PayPal.`
+              : `You never paid. Your ${formatUsd(total)} goes back to you through PayPal.`,
           ];
       await sendMail({
         kind: proven ? "gift_proven" : "gift_released",
@@ -119,7 +119,7 @@ export async function emailDonorsAboutRefund(refundIds: string[]): Promise<void>
           `Why: ${first.reason}`,
           "",
           net > 0 ? `You were charged ${formatUsd(net)} in the end.` : "You were not charged anything in the end.",
-          "PayPal sends the money back to the account or card you paid with.",
+          "PayPal sends the money back to the account or card you used to pay.",
           "",
           "Track your donation with the link in our first email - it shows the details.",
           "",

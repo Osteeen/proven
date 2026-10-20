@@ -41,7 +41,7 @@ export default function NeedsTimelineInner({
         resourceId: h.needId,
         startDate: new Date(h.start),
         endDate: new Date(h.end),
-        name: charged ? `${usd(h.capturedCents)} of ${usd(h.amountCents)} charged` : `${usd(h.amountCents)} held`,
+        name: charged ? `${usd(h.capturedCents)} of ${usd(h.amountCents)} paid` : `${usd(h.amountCents)} held`,
         // Red: lapses within 3 days. Green: partly charged. Amber: held.
         eventColor: daysLeft < 3 ? "#a32d2d" : charged ? "#1f7a4d" : "#b26b00",
         lapses: date(h.end),

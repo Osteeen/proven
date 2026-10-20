@@ -54,7 +54,7 @@ export default async function SupplierConfirmPage({ params, searchParams }: { pa
                 </div>
               )}
             </dl>
-            <p className="mt-4 text-sm text-ink-muted">Donors are only charged once delivery is confirmed. Your answer is final and goes to Proven, not just the charity.</p>
+            <p className="mt-4 text-sm text-ink-muted">Donors pay only after delivery is confirmed. Your answer is final and goes to Proven, not only the charity.</p>
             {r === "invalid" && (
               <p role="alert" className="mt-4 rounded-md border border-[#f09595] bg-[#fcebeb] px-4 py-3 text-sm text-[#791f1f]">
                 That didn&apos;t go through. Wait a minute and choose again.
@@ -68,7 +68,7 @@ export default async function SupplierConfirmPage({ params, searchParams }: { pa
                 No - this order isn&apos;t right
               </button>
             </form>
-            <p className="mt-4 text-xs text-ink-muted">Not delivered yet? Leave this page - the link stays open until you answer, for 30 days.</p>
+            <p className="mt-4 text-xs text-ink-muted">Not delivered yet? Leave this page. The link stays open for 30 days, until you answer.</p>
           </div>
         )}
         <p className="mt-6 text-xs text-ink-muted">PayPal sandbox demo - no real money moves.</p>

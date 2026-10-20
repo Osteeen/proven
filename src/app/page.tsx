@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NeedCard } from "@/components/need-card";
 import { PrimaryLink, SiteHeader } from "@/components/ui";
 import { demoLoginEnabled } from "@/server/auth/demo-login";
+import { DEMO_DONOR_LOGIN } from "@/server/demo/judge-login";
 import { listPublicNeeds } from "@/server/needs/repo";
 
 export const dynamic = "force-dynamic";
@@ -72,8 +73,7 @@ export default async function Home() {
             Give to disaster relief. You&apos;re only charged when delivery is proven.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft">
-            You give. PayPal holds your money. The charity buys the goods and proves they arrived. Only then do you pay -
-            and only for what was spent.
+            You give. PayPal holds your money. The charity buys the goods and proves they arrived. Then you pay only for what was spent.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-5">
             <PrimaryLink href="#needs">See needs to fund</PrimaryLink>
@@ -106,7 +106,12 @@ export default async function Home() {
           <section id="demo" className="rise-in mt-20 scroll-mt-6" style={{ animationDelay: "420ms" }}>
             <h2 className="font-serif text-2xl text-ink">Try the demo</h2>
             <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-              Play every part of Proven, in the order things happen. Each opens in a new tab. It runs on PayPal&apos;s test system, so no real money moves.
+              Play every role in Proven, in order. Each opens in a new tab. It uses PayPal&apos;s test system, so no real money moves.
+            </p>
+            <p className="mt-2 max-w-2xl text-sm text-ink-soft">
+              To give as a donor, log in to PayPal with this test account:{" "}
+              <span className="whitespace-nowrap font-mono text-ink select-all">{DEMO_DONOR_LOGIN.email}</span>, password{" "}
+              <span className="whitespace-nowrap font-mono text-ink select-all">{DEMO_DONOR_LOGIN.password}</span>
             </p>
             <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {DEMO_ROLES.map((r, i) => (
@@ -139,7 +144,7 @@ export default async function Home() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-serif text-2xl text-ink">Needs to fund</h2>
-              <p className="mt-1 text-sm text-ink-muted">Most urgent first. Each shows the cost, the deadline, and what must be proven before you pay.</p>
+              <p className="mt-1 text-sm text-ink-muted">Most urgent first. Each shows the cost, deadline, and what must be proven before you pay.</p>
             </div>
             {total > needs.length && (
               <Link href="/needs" className="text-sm text-ink underline decoration-line underline-offset-4 transition-colors hover:decoration-ink">
@@ -161,7 +166,7 @@ export default async function Home() {
         </section>
 
         <footer className="mt-20 border-t border-line pt-6 text-xs text-ink-muted">
-          This is a hackathon build on PayPal&apos;s test system. No real money moves.
+          This is a hackathon build using PayPal&apos;s test system. No real money moves.
         </footer>
       </main>
     </>

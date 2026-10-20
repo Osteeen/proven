@@ -79,10 +79,9 @@ export default async function DemoInboxPage({ searchParams }: { searchParams: Pr
       <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-6 sm:px-6">
         <BackLink href="/#demo">Back to the demo</BackLink>
         <div className="rise-in mt-3">
-          <h1 className="font-serif text-3xl text-ink">Messages to donors, suppliers and people helped</h1>
+          <h1 className="font-serif text-3xl text-ink">Messages for donors, suppliers, and people helped</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-            In real use each person gets these by email or text. In this demo you play all of them - open the message for the
-            person you&apos;re playing and use its link.
+            In real use, each person gets these by email or text. In this demo, you play every role. Open the message for the person you are playing and use its link.
           </p>
         </div>
         <nav aria-label="Who the messages are for" className="mt-5 flex flex-wrap gap-2 text-sm">
@@ -136,7 +135,7 @@ export default async function DemoInboxPage({ searchParams }: { searchParams: Pr
 }
 
 const ANSWER: Record<AnswerState, { label: string; cls: string }> = {
-  waiting: { label: "Waiting for an answer", cls: "bg-held-bg text-held-text" },
+  waiting: { label: "Waiting for a reply", cls: "bg-held-bg text-held-text" },
   yes: { label: "Answered: yes", cls: "bg-proven-bg text-proven-text" },
   no: { label: "Answered: no", cls: "bg-[#fcebeb] text-[#791f1f]" },
   expired: { label: "Link expired", cls: "bg-[#efece4] text-ink-muted" },

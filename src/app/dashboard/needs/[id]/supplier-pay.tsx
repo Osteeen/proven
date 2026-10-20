@@ -125,7 +125,7 @@ function PayForm({ needId, suppliers, remainingCents }: { needId: string; suppli
           <button type="submit" disabled={pending || leaving} className="rounded-full bg-ink px-5 py-2.5 text-sm text-paper transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40">
             {leaving ? "Opening PayPal..." : pending ? "Starting payment..." : "Pay with PayPal"}
           </button>
-          <p className="min-w-0 flex-1 text-xs text-ink-muted">You approve it on PayPal from your charity&apos;s own account. The money goes to the supplier, not to Proven.</p>
+          <p className="min-w-0 flex-1 text-xs text-ink-muted">Approve the payment in PayPal from your charity&apos;s account. The money goes to the supplier, not Proven.</p>
         </div>
       )}
     </form>
@@ -144,7 +144,7 @@ function InviteForm({ needId, onClose }: { needId: string; onClose?: () => void 
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-ink">Invite a supplier</p>
-          <p className="mt-0.5 text-xs text-ink-muted">They connect their PayPal business account once - no Proven account. Then any charity on Proven can pay them.</p>
+          <p className="mt-0.5 text-xs text-ink-muted">They connect their PayPal business account once. No Proven account is needed. Then any charity on Proven can pay them.</p>
         </div>
         {onClose && (
           <button type="button" onClick={onClose} className="shrink-0 text-xs text-ink-muted underline underline-offset-4 hover:text-ink">
@@ -173,7 +173,7 @@ function InviteForm({ needId, onClose }: { needId: string; onClose?: () => void 
           </motion.p>
         ) : state.sent && !pending ? (
           <motion.p key="ok" role="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-md border border-proven/30 bg-proven-bg px-4 py-3 text-sm text-proven-text">
-            {state.sent === "connected" ? "That supplier is already connected - pick them above." : "Invite sent. Once they connect PayPal, they show up above."}
+            {state.sent === "connected" ? "That supplier is already connected - pick them above." : "Invite sent. They show up above when they connect PayPal."}
           </motion.p>
         ) : null}
       </AnimatePresence>
@@ -194,7 +194,7 @@ function InvitedRow({ needId, supplier }: { needId: string; supplier: SupplierOp
           <span className="text-ink">{supplier.name}</span>
           {supplier.email && <span className="ml-2 text-xs text-ink-muted">{supplier.email}</span>}
           <span className="block text-xs text-ink-muted">
-            {supplier.status === "rejected" ? "Not accepted - Proven couldn't confirm this is an independent business" : "Invited - waiting for them to connect PayPal"}
+            {supplier.status === "rejected" ? "Not accepted - Proven couldn't confirm this is an independent business" : "Invited - waiting for the supplier to connect PayPal"}
           </span>
         </span>
         {supplier.status === "invited" && (

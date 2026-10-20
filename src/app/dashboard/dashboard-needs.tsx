@@ -41,11 +41,11 @@ type Sort = (typeof SORTS)[number]["key"];
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   open: { label: "Open for funding", cls: "bg-[#e9edf5] text-ink" },
-  funded: { label: "Funded - held", cls: "bg-held-bg text-held-text" },
-  delivering: { label: "Delivering - held", cls: "bg-held-bg text-held-text" },
+  funded: { label: "Funded - money held", cls: "bg-held-bg text-held-text" },
+  delivering: { label: "Delivering - money held", cls: "bg-held-bg text-held-text" },
   in_review: { label: "In review", cls: "bg-review-bg text-review-text" },
   proven: { label: "Proven", cls: "bg-proven-bg text-proven-text" },
-  not_proven: { label: "Not proven - holds released", cls: "bg-void-bg text-void-text" },
+  not_proven: { label: "Not proven - money goes back to donors", cls: "bg-void-bg text-void-text" },
   cancelled: { label: "Cancelled", cls: "bg-void-bg text-void-text" },
 };
 
@@ -202,7 +202,7 @@ export function DashboardNeeds({ needs, now }: { needs: DashboardNeed[]; now: nu
                   <dd>{usd(n.amountCents)}</dd>
                   <dt>Held from {n.donorCount} {n.donorCount === 1 ? "donor" : "donors"}</dt>
                   <dd>{usd(n.heldCents)}</dd>
-                  <dt>Released to you</dt>
+                  <dt>Paid to you</dt>
                   <dd>{usd(n.capturedCents)}</dd>
                   <dt>Deliver by</dt>
                   <dd>{day(n.deadline)}</dd>

@@ -7,19 +7,22 @@ import type { DonateState } from "./actions";
 
 const PRESETS = [10, 25, 50, 100];
 
-/** Gift amount + "Fund with PayPal". Used for first gifts and for adding to a gift. */
+/** Gift amount + "Give with PayPal". Used for first gifts and for adding to a gift. */
 export function DonateForm({
   action: serverAction,
   remainingCents,
   remainingLabel,
-  submitLabel = "Fund with PayPal",
+  submitLabel = "Give with PayPal",
   label = "Your donation",
+  testLogin,
 }: {
   action: (prev: DonateState, formData: FormData) => Promise<DonateState>;
   remainingCents: number;
   remainingLabel: string;
   submitLabel?: string;
   label?: string;
+  /** The public PayPal sandbox login for the demo, shown under the button. */
+  testLogin?: { email: string; password: string };
 }) {
   const [state, action, pending] = useActionState<DonateState, FormData>(serverAction, {});
   // Only offer presets that fit what's still needed, plus "the rest" when it's small.
@@ -78,6 +81,13 @@ export function DonateForm({
         <span className="relative">{pending ? "Opening PayPal..." : submitLabel}</span>
       </motion.button>
       <p className="text-center text-xs text-ink-muted">PayPal holds your money. You only pay if delivery is proven.</p>
+      {testLogin && (
+        <p className="rounded-md border border-dashed border-line px-3 py-2 text-center text-xs text-ink-muted">
+          Test PayPal login: <span className="font-mono text-ink select-all">{testLogin.email}</span>
+          <br />
+          Password: <span className="font-mono text-ink select-all">{testLogin.password}</span>
+        </p>
+      )}
     </form>
   );
 }

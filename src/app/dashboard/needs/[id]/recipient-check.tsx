@@ -37,11 +37,11 @@ export function RecipientCheckForm({ needId }: { needId: string }) {
           placeholder={"+1 555 010 2233\n+1 555 010 4410"}
           className="mt-1.5 w-full rounded-md border border-line bg-card px-3 py-2.5 font-mono text-sm text-ink outline-none focus:border-ink focus:shadow-[0_0_0_3px_rgba(15,30,61,0.12)]"
         />
-        <p className="mt-1 text-xs text-ink-muted">{count === 0 ? "With the country code." : `${count.toLocaleString("en-US")} ${count === 1 ? "number" : "numbers"}`}</p>
+        <p className="mt-1 text-xs text-ink-muted">{count === 0 ? "Include the country code." : `${count.toLocaleString("en-US")} ${count === 1 ? "number" : "numbers"}`}</p>
       </div>
       <label className="flex cursor-pointer items-start gap-2.5 text-sm text-ink">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-[#0f1e3d]" />
-        <span>Each person agreed, when their number was recorded, that Proven may text them once about this help.</span>
+        <span>Each person agreed that Proven may text them once about this help when their number was recorded.</span>
       </label>
       {state.error && !pending && (
         <p role="alert" className="rise-in rounded-md border border-[#f09595] bg-[#fcebeb] px-4 py-3 text-sm text-[#791f1f]">

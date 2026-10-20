@@ -50,7 +50,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <dl className="mt-8 grid grid-cols-3 gap-3">
           {[
             { label: "Held, not charged", value: <AnimatedMoney cents={held} delay={0.15} />, accent: "text-held" },
-            { label: "Released to you", value: <AnimatedMoney cents={captured} delay={0.25} />, accent: "text-proven" },
+            { label: "Paid to you", value: <AnimatedMoney cents={captured} delay={0.25} />, accent: "text-proven" },
             { label: "Open needs", value: <span className="font-mono">{open}</span>, accent: "text-ink" },
           ].map((m, i) => (
             <div key={m.label} className="rise-in rounded-[10px] bg-[#efece4] px-4 py-3" style={{ animationDelay: `${80 + i * 60}ms` }}>
@@ -77,7 +77,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {timeline.needs.length > 0 && (
           <section className="mt-12">
             <h2 className="font-serif text-xl text-ink">Holds timeline</h2>
-            <p className="mb-3 mt-1 text-sm text-ink-muted">Deliver and release before a hold lapses - PayPal holds last 29 days.</p>
+            <p className="mb-3 mt-1 text-sm text-ink-muted">Deliver and get paid within 29 days - that&apos;s how long PayPal can hold the money.</p>
             <NeedsTimeline needs={timeline.needs} holds={timeline.holds} now={new Date(now).toISOString()} />
           </section>
         )}

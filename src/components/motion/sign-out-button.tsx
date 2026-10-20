@@ -57,7 +57,7 @@ export function SignOutButton() {
             className="absolute right-0 z-30 mt-2 w-64 rounded-[12px] border border-line bg-card p-4 text-left shadow-[0_18px_40px_-18px_rgba(15,30,61,0.35)]"
           >
             <p id="signout-title" className="font-serif text-base text-ink">Sign out of Proven?</p>
-            <p id="signout-desc" className="mt-1 text-xs text-ink-muted">Holds and needs stay as they are. You can sign back in with PayPal anytime.</p>
+            <p id="signout-desc" className="mt-1 text-xs text-ink-muted">Donations PayPal is holding and your needs stay as they are. You can sign back in with PayPal anytime.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 ref={stayRef}

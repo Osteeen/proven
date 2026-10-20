@@ -8,9 +8,9 @@ import { createNeedAction, type NeedFormState } from "./actions";
 
 // The PayPal supplier payment comes first and is always required; the rest are second checks.
 const PROOFS = [
-  { value: "supplier_paypal_payment", label: "Paid the supplier with PayPal", hint: "You pay the supplier through Proven - PayPal's own record of that payment is the main proof" },
+  { value: "supplier_paypal_payment", label: "Paid the supplier with PayPal", hint: "Pay the supplier through Proven. PayPal's payment record is the main proof." },
   { value: "receipt", label: "Receipt", hint: "Read by AI and matched to the need" },
-  { value: "supplier_confirmation", label: "Supplier confirms", hint: "We ask the supplier at the email PayPal holds" },
+  { value: "supplier_confirmation", label: "Supplier confirms", hint: "We ask the supplier at the email PayPal has on file." },
   { value: "recipient_confirmation", label: "Recipient confirms", hint: "We text a random sample of the people helped" },
 ];
 
@@ -66,26 +66,26 @@ export function NeedForm({ minDate, maxDate, today }: { minDate: string; maxDate
           <div className="mt-1.5">
             <MoneyInput id="amount" name="amount" defaultValue={v?.amount} placeholder="500" invalid={!!e.amount} describedBy="amount-help amount-err" />
           </div>
-          <p id="amount-help" className="mt-1.5 text-xs text-ink-muted">Donors are charged only what you prove you spent.</p>
+          <p id="amount-help" className="mt-1.5 text-xs text-ink-muted">Donors pay only what you prove you spent.</p>
           <Err msg={e.amount} id="amount-err" />
         </div>
         <div>
           <span className="text-sm font-medium text-ink">Deliver by</span>
           <DatePicker name="deadline" label="Deliver by" min={minDate} max={maxDate} today={today} defaultValue={v?.deadline} invalid={!!e.deadline} describedBy="deadline-help deadline-err" />
-          <p id="deadline-help" className="mt-1.5 text-xs text-ink-muted">Within 28 days - a PayPal hold lasts 29.</p>
+          <p id="deadline-help" className="mt-1.5 text-xs text-ink-muted">Within 28 days - PayPal holds money for 29.</p>
           <Err msg={e.deadline} id="deadline-err" />
         </div>
       </div>
 
       <fieldset>
         <legend className="text-sm font-medium text-ink">Proof you&apos;ll provide</legend>
-        <p className="mt-0.5 text-xs text-ink-muted">You buy through Proven and pay the supplier with PayPal. Add at least one second check - money is released only when both agree.</p>
+        <p className="mt-0.5 text-xs text-ink-muted">Buy through Proven and pay the supplier with PayPal. Add at least one second check - you get paid only when both agree.</p>
         <ProofPicker name="requiredProof" options={PROOFS} required="supplier_paypal_payment" defaultValues={v?.requiredProof} />
         <Err msg={e.requiredProof} id="proof-err" />
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium text-ink">When the money is released</legend>
+        <legend className="text-sm font-medium text-ink">When you get paid</legend>
         <SlidingChoice
           name="fundingModel"
           layoutId="funding-model"

@@ -76,11 +76,11 @@ async function sendConfirmationMail(
     text: [
       `${p.charityName} paid ${p.supplierName} ${formatUsd(p.amountCents)} with PayPal for: ${p.description}.`,
       "",
-      "Donors are only charged once the delivery is confirmed. Please tell us when the goods have been handed over or collected - it takes one click:",
+      "Donors pay only after delivery is confirmed. Tell us when the goods have been handed over or collected - it takes one click:",
       "",
       `${appUrl()}/supplier/confirm/${token}`,
       "",
-      "If you have no such order, say so on the same page. This link works once and expires in 30 days.",
+      "If there was no such order, say so on the same page. This link works once and expires in 30 days.",
       "",
       "- Proven (PayPal sandbox demo - no real money moves)",
     ].join("\n"),

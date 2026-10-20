@@ -5,8 +5,7 @@
 - **Live app:** https://proven-cwi1.onrender.com - press **"Try the demo"** on the homepage to play every role (donor, charity, supplier and people helped, reviewer). No sign-up needed.
 - **Video:** _coming soon_
 - **Real PayPal sandbox, pretend money.** Every payment runs through PayPal's real sandbox APIs. No real money moves.
-
-The free server sleeps after 15 minutes without visitors, so the first page can take about a minute to load.
+- **Test PayPal login for giving** (sandbox donor, pretend money): `sb-47bv1e53465976@personal.example.com` / `aAD6pd#5`
 
 ---
 

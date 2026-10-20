@@ -24,8 +24,8 @@ async function shrink(file: File): Promise<Blob> {
 
 const RESULT: Record<string, { tone: string; title: string }> = {
   passed: { tone: "border-proven/30 bg-proven-bg text-proven-text", title: "Receipt checked - it matches the need." },
-  needs_review: { tone: "border-review/30 bg-review-bg text-review-text", title: "Receipt saved - a person will look at it." },
-  failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", title: "This receipt didn't pass." },
+  needs_review: { tone: "border-review/30 bg-review-bg text-review-text", title: "Receipt saved - a person will check it." },
+  failed: { tone: "border-[#f09595] bg-[#fcebeb] text-[#791f1f]", title: "This receipt didn't pass the check." },
 };
 
 export function ReceiptUpload({ needId }: { needId: string }) {
@@ -94,7 +94,7 @@ export function ReceiptUpload({ needId }: { needId: string }) {
         <span className="min-w-0">
           <span className="block text-sm text-ink">{pending ? "Reading the receipt..." : "Upload a receipt"}</span>
           <span className="block text-xs text-ink-muted">
-            {pending ? "Checking the shop, items, date and total against this need." : "A clear photo of the whole receipt. AI reads it; a person checks anything unclear."}
+            {pending ? "Checking the shop, items, date, and total against this need." : "A clear photo of the whole receipt. AI reads it; a person checks anything unclear."}
           </span>
         </span>
       </label>

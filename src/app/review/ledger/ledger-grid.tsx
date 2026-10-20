@@ -49,7 +49,9 @@ export function LedgerGrid({ rows }: { rows: LedgerRow[] }) {
         filterParams: { comparator: (day: Date, cell: string) => new Date(new Date(cell).toDateString()).getTime() - day.getTime() },
         minWidth: 160,
       },
-      { field: "event", headerName: "What happened", filter: "agSetColumnFilter", enableRowGroup: true, valueFormatter: (p) => label(EVENT_LABEL, p.value), filterParams: { valueFormatter: (p: ValueFormatterParams) => label(EVENT_LABEL, p.value) }, minWidth: 180 },
+      // The cell's value is the plain label ("Charged"), so filters, Ask the grid and the Excel
+      // export all use the words people see - not the stored event name ("captured").
+      { colId: "event", headerName: "What happened", filter: "agSetColumnFilter", enableRowGroup: true, valueGetter: (p) => (p.data ? label(EVENT_LABEL, p.data.event) : undefined), minWidth: 180 },
       { colId: "held", headerName: "Held", valueGetter: amountFor(["authorized"]), valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter" },
       { colId: "charged", headerName: "Charged", valueGetter: amountFor(["captured"]), valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter" },
       { colId: "released", headerName: "Released", valueGetter: amountFor(["voided", "expired"]), valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter" },

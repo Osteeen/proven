@@ -8,12 +8,12 @@ import { NeedsToolbar } from "./needs-toolbar";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Needs to fund",
-  description: "Specific, priced disaster-relief needs from charities. Give with PayPal - you're only charged once delivery is proven.",
+  description: "Specific, priced disaster-relief needs from charities. Give with PayPal - you pay only once delivery is proven.",
   // A page's own openGraph replaces the site's, so it names the site preview image itself.
   openGraph: {
     title: "Needs to fund - Proven",
-    description: "Specific, priced disaster-relief needs. Give with PayPal - you're only charged once delivery is proven.",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Proven - give to disaster relief, only charged when delivery is proven" }],
+    description: "Specific, priced disaster-relief needs. Give with PayPal - you pay only once delivery is proven.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Proven - give to disaster relief, pay only when delivery is proven" }],
   },
   twitter: { card: "summary_large_image", title: "Needs to fund - Proven", images: ["/opengraph-image"] },
 };

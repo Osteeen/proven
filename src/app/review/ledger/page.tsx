@@ -21,7 +21,7 @@ export default async function LedgerPage() {
         <div className="rise-in mt-3">
           <h1 className="font-serif text-3xl text-ink">Ledger</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Every hold, charge, release and refund, straight from Proven&apos;s append-only record. Totals by charity; donors stay anonymous.
+            Every donation held, every payment, and all money returned or refunded, from a record nobody can edit or delete. Totals by charity; donors stay anonymous.
           </p>
         </div>
         {more && (

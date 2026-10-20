@@ -20,11 +20,11 @@ export const metadata: Metadata = { title: "Your donation", robots: { index: fal
 type Stage = 0 | 1 | 2;
 const VIEW: Record<string, { headline: string; tone: "held" | "proven" | "void" | "review" | "neutral"; pill: string; stage: Stage; outcome: "proven" | "void" | "open" }> = {
   pending_approval: { headline: "Waiting for PayPal", tone: "neutral", pill: "Not held yet", stage: 0, outcome: "open" },
-  authorized: { headline: "Your donation is held - you haven't been charged", tone: "held", pill: "Held - not charged", stage: 0, outcome: "open" },
+  authorized: { headline: "PayPal holds your donation - you haven't paid", tone: "held", pill: "Held - not charged", stage: 0, outcome: "open" },
   advance: { headline: "Part of your donation paid the booking - the rest waits for delivery", tone: "held", pill: "Partly charged", stage: 0, outcome: "open" },
   in_review: { headline: "Delivery submitted - it's being checked", tone: "review", pill: "Being checked", stage: 1, outcome: "open" },
   proven: { headline: "Delivery proven - your donation did its job", tone: "proven", pill: "Proven - charged", stage: 2, outcome: "proven" },
-  closing: { headline: "Closed - your hold is being released", tone: "void", pill: "Releasing", stage: 1, outcome: "open" },
+  closing: { headline: "Closed - your money goes back to you", tone: "void", pill: "Releasing", stage: 1, outcome: "open" },
   voided: { headline: "Not proven - you were never charged", tone: "void", pill: "Never charged", stage: 2, outcome: "void" },
   closed_after_advance: { headline: "Closed - only the booking was charged", tone: "void", pill: "Closed", stage: 2, outcome: "void" },
   refunded: { headline: "Refunded - you got your money back", tone: "void", pill: "Refunded", stage: 2, outcome: "void" },
@@ -35,8 +35,8 @@ const HOLD_LABEL: Record<string, string> = {
   authorized: "Held",
   partially_captured: "Partly charged",
   captured: "Charged",
-  voided: "Released - never charged",
-  expired: "Released - never charged",
+  voided: "Money went back - you never paid",
+  expired: "Money went back - you never paid",
 };
 
 export default async function DonorGiftPage({
@@ -62,7 +62,7 @@ export default async function DonorGiftPage({
       <main className="mx-auto w-full max-w-2xl px-4 pb-20 pt-8 sm:px-6">
         {problem === "declined" && (
           <p role="alert" className="rise-in mb-6 rounded-md border border-[#f09595] bg-[#fcebeb] px-4 py-3 text-sm text-[#791f1f]">
-            PayPal didn&apos;t approve that hold, so nothing new was held or charged.
+            PayPal couldn&apos;t hold your money, so nothing was held or charged.
           </p>
         )}
         {problem === "filled" && (
@@ -97,7 +97,7 @@ export default async function DonorGiftPage({
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 font-mono text-sm [&>dd]:text-right [&>dt]:whitespace-nowrap [&>dt]:text-ink-muted">
             <dt>Your donation</dt>
             <dd><AnimatedMoney cents={g.giftCents} delay={0.3} /></dd>
-            <dt>{v.outcome === "open" ? "Charged so far" : "Charged"}</dt>
+            <dt>{v.outcome === "open" ? "Paid so far" : "Charged"}</dt>
             <dd><AnimatedMoney cents={g.chargedCents} delay={0.45} /></dd>
             {g.refundedCents > 0 && (
               <>
@@ -113,14 +113,14 @@ export default async function DonorGiftPage({
             )}
             {g.holdExpiresAt && g.heldCents > 0 && (
               <>
-                <dt>Hold lasts until</dt>
+                <dt>Held until</dt>
                 <dd>{formatDate(g.holdExpiresAt)}</dd>
               </>
             )}
             <dt>Deliver by</dt>
             <dd>{formatDate(g.deadline)}</dd>
-            <dt>Released when</dt>
-            <dd>{g.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(" + ")} check out</dd>
+            <dt>Proof needed</dt>
+            <dd>{g.requiredProof.map((p) => PROOF_LABELS[p as ProofType] ?? p).join(", ")}</dd>
           </dl>
 
           {g.holds.length > 1 && (
@@ -155,14 +155,14 @@ export default async function DonorGiftPage({
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-[11px] text-proven-text/80">Written only from records Proven holds - PayPal&apos;s payment record and checks that passed. The people helped stay anonymous.</p>
+            <p className="mt-4 text-[11px] text-proven-text/80">Written only from Proven&apos;s records - PayPal&apos;s payment record and checks that passed. The people helped stay anonymous.</p>
           </section>
         )}
 
         {g.canTopUp && (
           <section className="rise-in mt-8 rounded-[10px] border border-line bg-card p-6" style={{ animationDelay: "280ms" }}>
             <p className="font-serif text-lg text-ink">Add to your donation</p>
-            <p className="mt-1 text-sm text-ink-muted">It&apos;s held the same way and shows here as part of one donation.</p>
+            <p className="mt-1 text-sm text-ink-muted">PayPal holds it the same way and shows it here as one donation.</p>
             <DonateForm
               action={startTopUpAction.bind(null, key, g.needId)}
               remainingCents={g.remainingCents}

@@ -38,8 +38,8 @@ export async function requestReleaseAction(needId: string, _prev: ReleaseFormSta
     done = r.status;
   } catch (e) {
     if (e instanceof ReleaseError) return { error: e.message, amount, kind };
-    console.error("Release request failed", e instanceof Error ? e.message : e);
-    return { error: "Couldn't start the release. Nothing was charged - try again.", amount, kind };
+    console.error("Payment request failed", e instanceof Error ? e.message : e);
+    return { error: "Couldn't start your payment request. Nothing was charged - try again.", amount, kind };
   }
   // A final release closes the need and its release form, so the outcome is shown as a page notice.
   redirect(`/dashboard/needs/${needId}?released=${done}`);
@@ -55,7 +55,7 @@ export async function cancelNeedAction(needId: string): Promise<{ error?: string
     return {};
   } catch (e) {
     if (e instanceof ReleaseError) return { error: e.message };
-    console.error("Cancel need failed", e instanceof Error ? e.message : e);
+    console.error("Close need failed", e instanceof Error ? e.message : e);
     return { error: "Couldn't close the need. Try again." };
   }
 }

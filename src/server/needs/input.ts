@@ -99,7 +99,7 @@ export function parseNeedInput(
     if (Number.isNaN(deadline.getTime())) errors.deadline = "Pick a delivery date";
     else if (deadline.getTime() < opts.now.getTime() + DAY_MS) errors.deadline = "Give at least a day to deliver";
     else if (deadline.getTime() > opts.now.getTime() + MAX_DEADLINE_DAYS * DAY_MS)
-      errors.deadline = `Delivery must be within ${MAX_DEADLINE_DAYS} days - a PayPal hold lasts 29`;
+      errors.deadline = `Delivery must be within ${MAX_DEADLINE_DAYS} days - PayPal holds money for 29`;
   }
 
   if (!parsed.success || Object.keys(errors).length > 0 || amountCents === undefined || !deadline) {

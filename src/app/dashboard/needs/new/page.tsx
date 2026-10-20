@@ -18,7 +18,7 @@ export default async function NewNeedPage() {
           <p className="text-sm text-ink-muted">{charity.charityName}</p>
           <h1 className="font-serif text-3xl text-ink">Post a need</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            Donors fund it straight away. Their money is held on PayPal and released to you only when the proof below checks out.
+            Donors give straight away. PayPal holds their money and pays you only when the proof below checks out.
           </p>
         </div>
         <div className="rise-in mt-8" style={{ animationDelay: "100ms" }}>

@@ -35,7 +35,7 @@ export default async function RecipientCheckPage({ params, searchParams }: { par
           <>
             <h1 className="font-serif text-3xl leading-tight text-ink">Thank you</h1>
             <p className="mt-3 text-base text-ink-muted">
-              {q.answered === "yes" ? "Your answer helps the donors know their donation reached you." : "We'll look into it. Donors aren't charged for help that didn't arrive."}
+              {q.answered === "yes" ? "Your answer helps the donors know their donation reached you." : "We'll look into it. Donors do not pay for help that did not arrive."}
             </p>
           </>
         ) : (

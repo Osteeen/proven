@@ -93,7 +93,7 @@ export async function inviteSupplier(ctx: CharityContext, input: { name: string;
       "",
       `Connect PayPal: ${link}`,
       "",
-      "You'll sign in to PayPal and approve the connection. There is no Proven account to create.",
+      "You'll sign in to PayPal and approve the connection. You do not need to create a Proven account.",
       "",
       "- Proven (PayPal sandbox demo - no real money moves)",
     ].join("\n"),
@@ -425,7 +425,7 @@ async function settlePayment(p: PaymentRow, charityMerchantId: string, mayCaptur
     } catch (e) {
       if (!(e instanceof PayPalError) || e.status >= 500) return { status: "processing", message: PROCESSING, needId: p.needId };
       // Refused - but read PayPal's record before saying nothing was paid.
-      console.error("Supplier payment capture refused", { paymentId: p.id, status: e.status, issues: e.issues });
+      console.error("Supplier payment was refused", { paymentId: p.id, status: e.status, issues: e.issues });
       order = await getSupplierPaymentOrder(p.orderId).catch(() => order);
       if (!order.capture) return fail("PayPal didn't complete the payment.");
     }
@@ -471,7 +471,7 @@ async function settlePayment(p: PaymentRow, charityMerchantId: string, mayCaptur
             ? [REJECTED_REASON]
             : trusted
               ? []
-              : ["This supplier isn't verified yet. A Proven reviewer checks the business once - then payments to it pass on their own."]),
+              : ["This supplier is not verified yet. A Proven reviewer checks the business once. Then its payments pass without review."]),
         ],
         amountCents: p.amountCents,
         submittedBy: p.createdBy,
@@ -480,7 +480,7 @@ async function settlePayment(p: PaymentRow, charityMerchantId: string, mayCaptur
     await tx.update(supplierPayments).set({ proofId: proof!.id }).where(eq(supplierPayments.id, p.id));
   });
   // Ask the (verified) supplier to confirm the handover. Best effort: the daily sweep retries.
-  await requestSupplierConfirmation(p.id).catch((e) => console.error("Supplier confirmation request failed", { paymentId: p.id, error: e?.constructor?.name }));
+  await requestSupplierConfirmation(p.id).catch((e) => console.error("Could not request supplier confirmation", { paymentId: p.id, error: e?.constructor?.name }));
   return { status: "completed", message: paidMsg, needId: p.needId };
 }
 
@@ -618,7 +618,7 @@ export async function sweepSupplierPayments(limit = 50): Promise<{ settled: numb
         } else if (order.status !== "APPROVED" && order.status !== "COMPLETED") {
           await db
             .update(supplierPayments)
-            .set({ status: "cancelled", failure: "Not approved on PayPal." })
+            .set({ status: "cancelled", failure: "Not approved in PayPal." })
             .where(and(eq(supplierPayments.id, p.id), eq(supplierPayments.status, "created"), isNull(supplierPayments.captureRequestedAt)));
           out.cancelled++;
         }

@@ -44,7 +44,7 @@ export function ProofPicker({ name, options, required, defaultValues = [] }: { n
 
   const seconds = picked.filter((v) => v !== required).length;
   const ready = seconds >= 1;
-  const status = ready ? `PayPal supplier payment + ${seconds} ${seconds === 1 ? "check" : "checks"} - money is released when they agree` : "Pick at least one second check";
+  const status = ready ? `PayPal supplier payment + ${seconds} ${seconds === 1 ? "check" : "checks"} - you get paid when they agree` : "Pick at least one second check";
 
   return (
     <div>

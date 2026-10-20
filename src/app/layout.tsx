@@ -9,7 +9,7 @@ const fraunces = Fraunces({ subsets: ["latin"], weight: ["500"], variable: "--fo
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-jetbrains-mono", display: "swap" });
 
-const DESCRIPTION = "Give to disaster relief with PayPal. Your gift is held, not taken, and you're only charged for what the charity proves it delivered.";
+const DESCRIPTION = "Give to disaster relief with PayPal. PayPal holds your money - it does not take it. You pay only for what the charity proves it delivered.";
 
 export const metadata: Metadata = {
   // Link previews need absolute image URLs: the site's own address (127.0.0.1 in development).
