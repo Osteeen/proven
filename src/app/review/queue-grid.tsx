@@ -64,9 +64,9 @@ export function QueueGrid({ rows }: { rows: QueueRow[] }) {
         headerName: "Type",
         enableRowGroup: true,
         filter: "agSetColumnFilter",
-        valueFormatter: (p) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery release"),
+        valueFormatter: (p) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery payment"),
         minWidth: 150,
-        filterParams: { valueFormatter: (p: ValueFormatterParams) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery release") },
+        filterParams: { valueFormatter: (p: ValueFormatterParams) => (p.value == null ? "" : p.value === "advance" ? "Booking payment" : "Delivery payment") },
       },
       { field: "amountCents", headerName: "Amount", valueFormatter: money, aggFunc: "sum", type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", sort: "desc", minWidth: 120 },
       { field: "heldCents", headerName: "Held now", valueFormatter: money, type: "rightAligned", cellClass: "grid-money", filter: "agNumberColumnFilter", minWidth: 130, hide: true },
@@ -92,8 +92,8 @@ export function QueueGrid({ rows }: { rows: QueueRow[] }) {
       <AskGrid
         api={api}
         grid="queue"
-        examples={["Biggest first, new charities only", "Group by charity", "Only delivery releases"]}
-        schemaParams={{ columns: { kind: { includeSetValues: true, description: "advance = booking payment, final = delivery release" }, trustTier: { includeSetValues: true }, reviewReason: { includeSetValues: true }, price: { includeSetValues: true, description: "Channel3 market price check of the need" } } }}
+        examples={["Biggest first, new charities only", "Group by charity", "Only delivery payments"]}
+        schemaParams={{ columns: { kind: { includeSetValues: true, description: "advance = booking payment, final = delivery payment" }, trustTier: { includeSetValues: true }, reviewReason: { includeSetValues: true }, price: { includeSetValues: true, description: "Channel3 market price check of the need" } } }}
       />
       {/* Grows with its rows and any opened detail, so nothing is cut off. */}
       <div>
