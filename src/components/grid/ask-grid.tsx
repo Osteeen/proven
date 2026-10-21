@@ -39,6 +39,10 @@ export function AskGrid({
         return;
       }
       api.setState(r.gridState as never);
+      // A new view starts with its groups open (like the grid's first load), so the rows show.
+      api.forEachNode((n) => {
+        if (n.group) n.setExpanded(true);
+      });
       setDone(text);
     });
   };
