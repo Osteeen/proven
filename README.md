@@ -7,6 +7,15 @@
 - **Real PayPal sandbox, pretend money.** Every payment runs through PayPal's real sandbox APIs. No real money moves.
 - **Test PayPal login for giving** (sandbox donor, pretend money): `sb-47bv1e53465976@personal.example.com` / `aAD6pd#5`
 
+### Try it in 3 minutes
+
+Open the live app and press **Try the demo**. Each role opens in a new tab:
+
+1. **Donor** - pick a need, press **Give with PayPal** and log in with the test PayPal account above. Your money is held, not taken.
+2. **Charity** - press **Open as the charity** to see its needs, the donations held and each hold's timeline. Paying the supplier is approved in the demo charity's own PayPal sandbox account, which stays private, so the video shows that step.
+3. **Supplier and people helped** - press **Open their messages** and answer for them: "yes, it arrived".
+4. **Reviewer** - press **Open as the reviewer** to decide anything flagged in the review queue, see the ledger, and the holds timeline.
+
 ---
 
 ## The problem
@@ -17,7 +26,7 @@ When disaster strikes, people give fast - and fraud follows. The FBI's Internet 
 
 You give. PayPal holds your money. The charity buys the goods and proves they arrived. Only then do you pay - and only for what was spent. If they can't prove it, you pay nothing.
 
-1. **The charity posts a need.** For example: "40 heavy-duty tarps for storm-damaged roofs, $1,200, by Oct 25." The goods must arrive within 28 days, because PayPal can hold money for 29. Proven compares the price with what shops charge.
+1. **The charity posts a need.** For example: "40 heavy-duty tarps for storm-damaged roofs, $1,200, delivered within 10 days." The goods must arrive within 28 days, because PayPal can hold money for 29. Proven compares the price with what shops charge.
 2. **You give.** PayPal holds the money on your account. Nothing is taken yet. You get a private link to follow the need.
 3. **The charity buys the goods.** It pays a checked supplier from its own PayPal, through Proven. That PayPal payment is the main proof.
 4. **One more check confirms delivery:** the receipt (read by AI), the supplier confirming the handover, or a few of the people helped, picked at random, texting back "yes, I got it".
@@ -90,6 +99,7 @@ Receipt text and charity-written words reach the AI as marked data, never as ins
 | **Bryntum Scheduler** (7.3.7) | The **holds timeline**: one row per need, one bar per donor's hold from the day PayPal placed it to the day it lapses, with the delivery deadline as a band. Needs running out of time stand out. Shown to reviewers and on the charity dashboard. |
 | **Channel3** | **Market price checks**: product search for each need's goods, filtered to like-for-like listings by Claude, priced per piece. "Well above market" sends the need's payments to a reviewer. |
 | **Render** | Web service, managed Postgres, environment secrets, and PayPal webhooks on the public URL. Migrations and the demo seed run on every deploy. |
+| **GitHub Actions** | Runs the daily job (`POST /api/jobs/daily`): reconciles captures and supplier payments, closes lapsed holds and keeps the demo needs fresh. |
 | **Claude** (Anthropic) | Receipt reading, price checks and Ask the grid. See above. |
 
 **AG Grid:** Enterprise features run without a licence key, so the grid shows the trial watermark and a console notice. The AG Grid team confirmed this is fine for judging.
@@ -158,6 +168,7 @@ Built with Next.js 16, React 19, TypeScript, PostgreSQL and Drizzle ORM.
 - **The 28-day window.** A PayPal hold lasts 29 days, so every need must be delivered within 28. Longer projects need longer holds or a "charge on proof" consent from PayPal.
 - **The charity pays its supplier first.** Paying the supplier straight from released donor money is the next step, and works best inside PayPal.
 - **Price checks depend on shop coverage.** Channel3 covers hardware and outdoor goods well (tarps, sleeping mats, fleece blankets). Bulk or assembled relief items (hygiene kits) often get no verdict. Items sold in packs can be priced per piece by the AI while the need is priced per pack, which gives no verdict - for example water purification tablets.
+- **The demo keeps itself fresh.** The demo charity's needs move their deadlines forward each day (never past PayPal's hold window), so the demo stays live for anyone trying it. Real charities' deadlines never move.
 - **Messages are simulated.** Emails and texts to suppliers and people helped appear on a demo messages page instead of being sent.
 
 ---

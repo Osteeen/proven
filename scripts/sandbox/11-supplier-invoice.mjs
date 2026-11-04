@@ -26,7 +26,9 @@ const STATE_FILE = join(STATE_DIR, "test11.json");
 const load = () => (existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, "utf8")) : {});
 const save = (s) => { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(STATE_FILE, JSON.stringify(s, null, 2) + "\n"); };
 const charity = JSON.parse(readFileSync(join(STATE_DIR, "test7.json"), "utf8"));
-const CHARITY_EMAIL = "sb-v7sp853112680@business.example.com";
+// The sandbox charity's login email (Testing Tools > Sandbox Accounts), passed in so it is not kept in the repo.
+const CHARITY_EMAIL = process.env.DEMO_CHARITY_EMAIL;
+if (!CHARITY_EMAIL) throw new Error("DEMO_CHARITY_EMAIL (the sandbox charity's login email) is not set");
 
 async function token() {
   const res = await fetch(`${BASE}/v1/oauth2/token`, {
