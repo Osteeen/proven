@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { markLapsedHolds } from "@/server/jobs/lapsed-holds";
 import { sweepStuckProofs } from "@/server/proofs/service";
 import { sweepRecipientChecks } from "@/server/proofs/recipients";
-import { closeStaleDemoNeeds, refreshDemoNeeds } from "@/server/demo/needs";
+import { closeStaleDemoNeeds, extendDemoDeadlines, refreshDemoNeeds } from "@/server/demo/needs";
 import { sweepPriceChecks } from "@/server/prices/check";
 import { sweepSupplierPayments } from "@/server/suppliers/service";
 
@@ -27,8 +27,12 @@ export async function POST(req: NextRequest) {
   const stuckProofs = await sweepStuckProofs();
   const supplierPayments = await sweepSupplierPayments();
   const recipientChecks = await sweepRecipientChecks();
-  // Demo mode only: clear visitors' test needs, then top the seeded ones back up.
-  const demoNeeds = process.env.DEMO_LOGIN === "true" ? { closed: await closeStaleDemoNeeds(), posted: await refreshDemoNeeds() } : null;
+  // Demo mode only: keep the seeded needs' deadlines rolling, clear visitors' test needs
+  // and duplicates, then top the seeded ones back up.
+  const demoNeeds =
+    process.env.DEMO_LOGIN === "true"
+      ? { extended: await extendDemoDeadlines(), closed: await closeStaleDemoNeeds(), posted: await refreshDemoNeeds() }
+      : null;
   const priceChecks = process.env.CHANNEL3_API_KEY ? await sweepPriceChecks() : 0;
   console.info("Daily jobs", { lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds, priceChecks });
   return NextResponse.json({ ok: true, lapsed, stuckProofs, supplierPayments, recipientChecks, demoNeeds, priceChecks });

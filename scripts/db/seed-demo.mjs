@@ -72,14 +72,14 @@ try {
 
   // Realistic needs for the demo charity, so the homepage always has needs to fund. Same
   // templates and rules as the daily job (src/server/demo/needs.ts): post any template with
-  // no live copy, deadline inside the 28-day hold window.
+  // no live copy, deadline inside the 28-day hold window. The daily job keeps live copies' deadlines rolling.
   await client.query("select pg_advisory_xact_lock(hashtext('proven-demo-needs'))");
   const templates = JSON.parse(readFileSync(join(here, "..", "..", "src", "server", "demo", "demo-needs.json"), "utf8"));
   let needsPosted = 0;
   for (const t of templates) {
     const live = await client.query(
       `select 1 from needs where charity_id = $1 and demo_seed and title = $2
-         and status in ('open', 'funded', 'delivering', 'in_review') and deadline > now() + interval '1 day' limit 1`,
+         and status in ('open', 'funded', 'delivering', 'in_review') limit 1`,
       [charityId, t.title],
     );
     if (live.rowCount) continue;

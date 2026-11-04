@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gt, inArray, lt, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, notInArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { charities, needs } from "@/server/db/schema";
 import type { ProofType } from "@/server/needs/input";
@@ -15,8 +15,8 @@ type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
 /**
  * Keeps the demo charity's seeded needs on the homepage: any template without
- * a live copy (closed, or within a day of its deadline) is posted again with a
- * fresh deadline. Safe to run any number of times (deploy seed and daily job).
+ * a live copy is posted again with a fresh deadline (live copies are kept fresh
+ * by extendDemoDeadlines). Safe to run any number of times (deploy seed and daily job).
  */
 export async function refreshDemoNeeds(): Promise<number> {
   const db = getDb();
@@ -34,7 +34,7 @@ export async function refreshDemoNeeds(): Promise<number> {
     const live = await tx
       .select({ title: needs.title })
       .from(needs)
-      .where(and(eq(needs.charityId, charity.id), eq(needs.demoSeed, true), inArray(needs.status, [...LIVE]), gt(needs.deadline, new Date(Date.now() + DAY_MS))));
+      .where(and(eq(needs.charityId, charity.id), eq(needs.demoSeed, true), inArray(needs.status, [...LIVE])));
     const have = new Set(live.map((n) => n.title));
     let count = 0;
     for (const t of templates) {
@@ -78,10 +78,49 @@ async function inheritPriceCheck(tx: Tx, needId: string, charityId: string, t: {
     on conflict (need_id) do nothing`);
 }
 
+/** Holds that still have money on them. */
+const OPEN_HOLD = sql.raw("('authorized', 'partially_captured')");
+
+/**
+ * Daily, before closeStaleDemoNeeds: rolls each live seeded demo need's deadline
+ * forward to its template's distance from today, so the demo cases (held money,
+ * a payment waiting for review) stay live while judges look instead of closing on
+ * a fixed date. Only moves deadlines later, and never past what PayPal allows:
+ * a day before the earliest open hold lapses, and the 28-day window from posting
+ * (the needs_deadline_window check). A need that can't move closes as before.
+ * Demo charity only: real charities' deadlines never move.
+ */
+export async function extendDemoDeadlines(onlyCharityId?: string): Promise<number> {
+  let moved = 0;
+  for (const t of templates) {
+    const rows = await getDb().execute(sql`
+      with target as (
+        select n.id,
+               least(
+                 date_trunc('day', now() + make_interval(days => ${t.days})) + interval '23 hours 59 minutes 59 seconds',
+                 n.created_at + interval '28 days',
+                 coalesce((select min(d.hold_expires_at) from donations d
+                            where d.need_id = n.id and d.status in ${OPEN_HOLD}) - interval '1 day', 'infinity')
+               ) as deadline
+          from needs n join charities c on c.id = n.charity_id
+         where c.is_demo and n.demo_seed and n.title = ${t.title}
+           and n.status in ('open', 'funded', 'delivering', 'in_review')
+           ${onlyCharityId ? sql`and c.id = ${onlyCharityId}` : sql``}
+      )
+      update needs n set deadline = target.deadline, updated_at = now()
+        from target
+       where n.id = target.id and target.deadline > n.deadline and target.deadline > now()
+      returning n.id`);
+    moved += rows.rows.length;
+  }
+  return moved;
+}
+
 /**
  * Daily: closes the demo charity's needs that visitors posted more than two days
- * ago, seeded needs past their deadline, and seeded needs whose template was
- * retired (replaced in demo-needs.json). Closing cancels every hold - sandbox
+ * ago, seeded needs past their deadline, seeded needs whose template was retired
+ * (replaced in demo-needs.json), and duplicate seeded copies with no money on
+ * them (keeping the copy that has money on it, else the newest). Closing cancels every hold - sandbox
  * donors are never charged - exactly as a charity closing its own need.
  */
 export async function closeStaleDemoNeeds(onlyCharityId?: string): Promise<number> {
@@ -98,6 +137,14 @@ export async function closeStaleDemoNeeds(onlyCharityId?: string): Promise<numbe
           and(eq(needs.demoSeed, false), lt(needs.createdAt, new Date(Date.now() - DEMO_NEED_LIFETIME_MS))),
           and(eq(needs.demoSeed, true), lt(needs.deadline, new Date())),
           and(eq(needs.demoSeed, true), notInArray(needs.title, templates.map((t) => t.title))),
+          and(
+            eq(needs.demoSeed, true),
+            sql`not exists (select 1 from donations d where d.need_id = ${needs.id} and d.status in ('authorized', 'partially_captured', 'captured'))`,
+            sql`exists (select 1 from needs o where o.charity_id = ${needs.charityId} and o.demo_seed and o.title = ${needs.title}
+                          and o.id <> ${needs.id} and o.status in ('open', 'funded', 'delivering', 'in_review')
+                          and (o.created_at > ${needs.createdAt}
+                               or exists (select 1 from donations d where d.need_id = o.id and d.status in ('authorized', 'partially_captured', 'captured'))))`,
+          ),
         ),
       ),
     )
